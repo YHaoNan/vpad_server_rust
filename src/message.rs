@@ -1,6 +1,13 @@
+use std::borrow::BorrowMut;
+use std::process::id;
+use std::sync::{Arc, Mutex};
+
 use bytes::{Buf, BufMut, BytesMut};
+use crate::arp_handler::GLOBAL_ARP_HANDLER;
 use crate::constants::*;
-use crate::message::Message::HandShake;
+use crate::midi_connect::{GLOBAL_MIDI_CONNECTOR, MidiConnector};
+use crate::message::Message::*;
+use crate::server::VPadMessageContext;
 
 
 #[derive(Debug)]
@@ -36,20 +43,20 @@ impl Message {
         println!("op => {op}, content_bytes => {content_bytes}");
         match op {
             HANDSHAKE_OP => {
-                Some(Message::HandShake {
+                Some(HandShake {
                     name: byte_buf.get_string(),
                     platform: byte_buf.get_string()
                 })
             },
             MIDI_OP => {
-                Some(Message::Midi {
+                Some(Midi {
                     note: byte_buf.get_i8(),
                     velocity: byte_buf.get_i8(),
                     state: byte_buf.get_i8()
                 })
             }
             ARP_OP => {
-                Some(Message::Arp {
+                Some(Arp {
                     note: byte_buf.get_i8(),
                     velocity: byte_buf.get_i8(),
                     state: byte_buf.get_i8(),
@@ -68,7 +75,7 @@ impl Message {
         }
     }
 
-    pub fn handle_and_return(&self) -> Option<Message> {
+    pub fn handle_and_return<'a>(self, ctx: &'a VPadMessageContext) -> Option<Message> {
         match self {
             HandShake { .. } => {
                 Some(HandShake {
@@ -76,6 +83,16 @@ impl Message {
                     platform: SERVER_PLATFORM.into()
                 })
             },
+            Midi {note, velocity, state} => {
+                let mut midi_connector = GLOBAL_MIDI_CONNECTOR.lock().unwrap();
+                midi_connector.borrow_mut().midi_note_message(note, velocity, state);
+                None
+            },
+            Arp { note, .. } => {
+                let identifier = format!("{}:{} on {}", ctx.addr.ip().to_string(), ctx.addr.port().to_string(), &note);
+                GLOBAL_ARP_HANDLER.handle(identifier, self);
+                None
+            }
             _ => {
                 None
             }
@@ -94,9 +111,7 @@ impl Message {
                 buf.put_string(name);
                 buf.put_string(platform);
             }
-            _ => {
-
-            }
+            _ => { /* nothing to do */ }
         }
         buf
     }
@@ -108,6 +123,7 @@ trait StringLikeBuf {
     fn put_string(&mut self, string: &[u8]);
 }
 
+// Provide BytesMut.set_string以及BytesMut.get_string
 impl StringLikeBuf for BytesMut {
     fn get_string(&mut self) -> String {
         let len = self.get_i8();
@@ -125,4 +141,3 @@ impl StringLikeBuf for BytesMut {
         }
     }
 }
-

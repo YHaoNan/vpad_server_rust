@@ -1,10 +1,16 @@
+#![allow(dead_code)]
+
+extern crate core;
+
+mod cmd;
 mod server;
 mod message;
 mod constants;
+mod midi_connect;
+mod arp_handler;
+mod pulse_generator;
 
 #[tokio::main]
-async fn main() -> server::Result {
-    let vpad_server = server::VPadServer::bind("0.0.0.0:1236");
-    vpad_server.start().await?;
-    Ok(())
+async fn main() {
+    cmd::startup().await;
 }
