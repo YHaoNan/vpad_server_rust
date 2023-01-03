@@ -5,6 +5,12 @@ use std::time::{Duration, SystemTime};
 
 /// 脉冲生成器，最大生成数量 u32::Max，大概是4亿多，超出后自动关闭
 /// ticktime中每一个元素代表两次脉冲之间的间隔，第一次脉冲直接触发
+///
+/// start后，PulseGenerator会进入main loop，不断循环，但sleep会让它不过多的消耗CPU时钟周期
+/// 你可以通过调用PulseGenerator.stop来手动停止main loop以释放资源，stop后的PulseGenerator无法重启
+/// 但由于在使用for in的迭代器语句中，通常你会将PulseGenerator的所有权移交给迭代器，所以你无法再stop它
+/// 所以，PulseGenerator实现了Drop trait，你只需要在适当的情况下break出循环，当PulseGenerator超出作用域
+/// stop会自动被调用
 pub struct PulseGenerator {
     ticktime: VecDeque<Duration>, // 脉冲间的间隔列表，会从这个列表里循环取间隔
     check_interval: Duration, // 为避免CPU忙碌空转，引入睡眠，该值越大，脉冲生成器精度越低，但CPU负载越低。默认1ms
@@ -14,6 +20,12 @@ pub struct PulseGenerator {
     _is_stopped: bool, // 控制是否停止
     _iter: u32, // 控制迭代次数
     _time_spended: Duration, // 已经花费的时间
+}
+
+impl Drop for PulseGenerator {
+    fn drop(&mut self) {
+        self.stop();
+    }
 }
 
 impl PulseGenerator {
@@ -53,6 +65,7 @@ impl Iterator for PulseGenerator {
             } else {
                 self.ticktime.get((i - 1) as usize % self.ticktime.len()).unwrap().clone()
             };
+
             if elapsed >= self._time_spended + current_duration {
                 if i == u32::MAX {
                     self.stop();

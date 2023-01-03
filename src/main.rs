@@ -9,6 +9,7 @@ mod constants;
 mod midi_connect;
 mod arp_handler;
 mod pulse_generator;
+mod circle_container;
 
 #[tokio::main]
 async fn main() {
