@@ -142,8 +142,8 @@ fn build_note_generator(base_note: i8, method: i8, up_note_cnt: i8) -> CircleCon
             count_to_vec(up_note_cnt, |i| (i / 4) * 12 + c.next().unwrap())
         }
         METHOD_3MINCHORD => {
-            let mut c = CircleContainer::new(vec![0, 3, 7, 11]);
-            count_to_vec(up_note_cnt, |i| (i / 4) * 12 + c.next().unwrap())
+            let mut c = CircleContainer::new(vec![0, 3, 7]);
+            count_to_vec(up_note_cnt, |i| (i / 3) * 12 + c.next().unwrap())
         }
         METHOD_7MINCHORD => {
             let mut c = CircleContainer::new(vec![0, 3, 7, 11]);
