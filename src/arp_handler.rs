@@ -89,7 +89,6 @@ fn build_requirements(message: Message, arp_handler: &ArpHandler) -> Option<(Cir
 // 从0..to进行计数，并存储到Vec中，过程中可以应用一个函数
 fn count_to_vec<F>(to: i8, mut f: F) -> Vec<i8>
 where F: FnMut(i8) -> i8, {
-    let f = &mut f;
     let mut vec = Vec::with_capacity(to as usize);
     for i in 0..to {
         vec.push(f(i));
@@ -102,7 +101,6 @@ fn count_to_vec_up_down<F>(to: i8, mut f: F) -> Vec<i8>
     where F: FnMut(i8) -> i8, {
     let mid = to / 2;
     let even = to % 2 == 0;
-    let f = &mut f;
     count_to_vec(to, |i| {
         if to / (i + 1) > 1 {
             f(i)
