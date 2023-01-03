@@ -51,17 +51,24 @@ dynamic_pct: int2, // 0..=200
 bpm: int2
 ```
 
+下面是ArpMessage中的部分字段的枚举表，字段只限制了从名字来看，该字段该有的行为，比如`METHOD_UP`，代表该琶音是上行的琶音，至于服务端如何解析它，不做限制，所以有可能出现同样的琶音设置在不同的服务端上行为不一致的情况。
+
+
 ### method 琶音方法
 ```
 METHOD_NO_METHOD = 0
-METHOD_UP = 1
-METHOD_DOWN = 2
-METHOD_UP_DOWN = 3
-METHOD_DOWN_UP = 4
-METHOD_3CHORD = 5
-METHOD_7CHORD = 6
-METHOD_3MINCHORD = 7
-METHOD_7MINCHORD = 8
+METHOD_UP = 1           // 上行琶音
+METHOD_DOWN = 2         // 下行琶音
+METHOD_UP_DOWN = 3      // 上行后下行
+METHOD_DOWN_UP = 4      // 下行后上行
+METHOD_3CHORD = 5       // 三和弦
+METHOD_7CHORD = 6       // 七和弦
+METHOD_3MINCHORD = 7    // 小三和弦
+METHOD_7MINCHORD = 8    // 小七和弦
+METHOD_11CHORD = 9      // 大十一和弦
+METHOD_13CHORD = 10     // 大十三和弦
+METHOD_11MINCHORD = 11  // 小十一和弦
+METHOD_13MINCHORD = 12  // 小十三和弦
 ```
 
 ### rate 琶音速率
@@ -88,14 +95,16 @@ RATE_1_64 = 18
 RATE_1_64_T = 19
 ```
 
+> `RATE_<x>_<y>[_z]`，x和y是必选项，x固定为1，y代表一个拍子被分成几份，简单来说，`1_8`代表八分音符。 z是可选项，它是后缀，`D`代表是一个附点音符的时值，`T`代表是三连音的时值
+
 ### velocity_automation 力度包络
 ```
 VELOCITY_NO_AUTOMATION = 0
-VELOCITY_UP = 1
-VELOCITY_DOWN = 2
-VELOCITY_UP_DOWN = 3
-VELOCITY_DOWN_UP = 4
-VELOCITY_STEP = 5
-VELOCITY_RANDOM = 6
+VELOCITY_UP = 1           // 上行
+VELOCITY_DOWN = 2         // 下行
+VELOCITY_UP_DOWN = 3      // 上行后下行
+VELOCITY_DOWN_UP = 4      // 下行后上行
+VELOCITY_STEP = 5         // 步进
+VELOCITY_RANDOM = 6       // 随机
 ```
 

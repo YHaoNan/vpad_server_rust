@@ -1,9 +1,11 @@
+use std::cmp::{max, min};
 use std::collections::HashMap;
 use std::iter::{Map, once};
 use std::rc::Rc;
 use std::sync::Mutex;
 use std::time::Duration;
 use lazy_static::lazy_static;
+use rand::Rng;
 use tokio::task::JoinHandle;
 use crate::circle_container::CircleContainer;
 use crate::message::Message;
@@ -75,17 +77,13 @@ fn build_requirements(message: Message, arp_handler: &ArpHandler) -> Option<(Cir
         let once_arp_dur = beat_dur.mul_f64(arp_handler.rate_scales[rate as usize]);
 
         let mut note_generator = build_note_generator(note, method, up_note_cnt);
-        let mut velocity_generator = build_velocity_generator(velocity, velocity_automation, dynamic_pct);
+        let mut velocity_generator = build_velocity_generator(velocity, velocity_automation, dynamic_pct, up_note_cnt);
         let mut pulse_generator = build_pulse_generator(once_arp_dur, swing_pct);
 
         Some((note_generator, velocity_generator, pulse_generator))
     } else {
         None
     }
-}
-
-fn build_velocity_generator(base_velocity: i8, velocity_automation: i8, dynamic_pct: i16) -> CircleContainer<i8> {
-    CircleContainer::new(vec![base_velocity])
 }
 
 // 从0..to进行计数，并存储到Vec中，过程中可以应用一个函数
@@ -114,6 +112,49 @@ fn count_to_vec_up_down<F>(to: i8, mut f: F) -> Vec<i8>
             f(i)
         }
     })
+}
+
+fn build_velocity_generator(base_velocity: i8, velocity_automation: i8, dynamic_pct: i16, up_note_cnt: i8) -> CircleContainer<i8> {
+    /**
+     * dynamic_pct为0~200，代表着力度的另一端，我们假设它是another_velocity，则力度生成器产生的力度将在base_velocity到another_velocity的范围内
+     *      当dynamic_pct小于100时，力度生成器的范围是[another_velocity, base_velocity]
+     *      当dynamic_pct大于100时，力度生成器的范围是[base_velocity, another_velocity]
+     *      当dynamic_pct等于100时，谁前谁后无所谓，此时`base_velocity == another_velocity`，力度生成器将生成恒定的值
+     * 特别注意，因为MIDI协议限制音符力度最大值为127，所以another_velocity必须限制在127以下
+     */
+    let another_velocity = (base_velocity as f64 * (dynamic_pct as f64 / 100f64)) as i16;
+    let another_velocity = if another_velocity > 127 { 127i8 } else { another_velocity as i8 };
+
+    let min_velo = min(base_velocity, another_velocity);
+    let max_velo = max(base_velocity, another_velocity);
+    let step = (max_velo - min_velo) / up_note_cnt;
+
+    let mut rng = rand::thread_rng();
+
+    let velocity_vec = match velocity_automation {
+        VELOCITY_UP => {
+            count_to_vec(up_note_cnt, |i| min_velo + i * step)
+        }
+        VELOCITY_DOWN => {
+            count_to_vec(up_note_cnt, |i| max_velo - i * step)
+        }
+        VELOCITY_UP_DOWN => {
+            count_to_vec_up_down(up_note_cnt, |i| min_velo + i * step * 2)
+        }
+        VELOCITY_DOWN_UP => {
+            count_to_vec_up_down(up_note_cnt, |i| max_velo - i * step * 2)
+        }
+        VELOCITY_RANDOM => {
+            count_to_vec(up_note_cnt, |i| rng.gen_range(min_velo..=max_velo))
+        }
+        VELOCITY_STEP => {
+            count_to_vec(up_note_cnt, |i| if i % 2 == 0 { max_velo } else { min_velo })
+        }
+        _ => {
+            count_to_vec(up_note_cnt, |i| base_velocity)
+        }
+    };
+    CircleContainer::new(velocity_vec)
 }
 
 fn build_note_generator(base_note: i8, method: i8, up_note_cnt: i8) -> CircleContainer<i8> {
