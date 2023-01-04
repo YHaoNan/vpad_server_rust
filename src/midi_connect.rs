@@ -2,6 +2,7 @@ use std::borrow::BorrowMut;
 use std::string::ToString;
 use std::sync::{Arc, Mutex};
 use lazy_static::lazy_static;
+use midi_control::Channel::Ch1;
 use midi_control::MidiMessageSend;
 use midir::{ConnectError, InitError, MidiOutput, MidiOutputConnection};
 use crate::{midi_connect::MidiConnectorError::PortNotFoundError, message::Message};
@@ -75,6 +76,11 @@ impl MidiConnector {
         );
     }
 
+    pub fn cc_message(&mut self, channel: i8, value: i8) {
+        self.connection.as_mut().unwrap().send_message(
+            midi_control::control_change(Ch1, channel as u8, value as u8)
+        );
+    }
 }
 
 lazy_static! {

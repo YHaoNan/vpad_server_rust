@@ -38,6 +38,10 @@ pub enum Message {
     PitchWheel {
         pos: i8,
         prev_pos: i8
+    },
+    CC {
+        channel: i8,
+        value: i8
     }
 }
 
@@ -51,7 +55,7 @@ impl Message {
                     name: byte_buf.get_string(),
                     platform: byte_buf.get_string()
                 })
-            },
+            }
             MIDI_OP => {
                 Some(Midi {
                     note: byte_buf.get_i8(),
@@ -77,6 +81,12 @@ impl Message {
                 Some(PitchWheel {
                     pos: byte_buf.get_i8(),
                     prev_pos: byte_buf.get_i8()
+                })
+            }
+            CC_OP => {
+                Some(CC {
+                    channel: byte_buf.get_i8(),
+                    value: byte_buf.get_i8()
                 })
             }
             _ => {
@@ -105,6 +115,11 @@ impl Message {
             }
             PitchWheel { pos, prev_pos } => {
                 pitch_wheel::move_to_smoothly(prev_pos, pos);
+                None
+            }
+            CC { channel, value } => {
+                let mut midi_connector = GLOBAL_MIDI_CONNECTOR.lock().unwrap();
+                midi_connector.borrow_mut().cc_message(channel, value);
                 None
             }
             _ => {
