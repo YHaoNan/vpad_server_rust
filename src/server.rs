@@ -1,9 +1,9 @@
 use std::fmt::{Debug};
-use std::io::Error;
+use std::io::{Cursor, Error, Read};
 use std::net::{SocketAddr};
 use std::result;
 use std::sync::{Arc, Mutex};
-use bytes::{Buf, BytesMut};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 use tokio;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
@@ -72,16 +72,22 @@ async fn process_socket(mut socket: TcpStream, addr: SocketAddr) {
         if len == 0 {
             break;
         }
-        // 具有并且具有完整的一条消息（待修改）
+        // 具有并且具有完整的一条消息（待修改），目前不考虑消息不完整的情况
         while byte_buf.has_remaining() {
-            if let Some(msg) = Message::parse(&mut byte_buf) {
-                println!("{:?}", msg);
-                if let Some(return_msg) = msg.handle_and_return(&ctx) {
-                    println!("got return msg => {:?}", return_msg);
-                    // 这两个Future返回的Result不必须被处理，如它们是Err，忽略
-                    wr.write_buf(&mut return_msg.to_buf()).await;
-                    wr.flush().await;
+            // 解包content_bytes
+            let content_bytes_cnt = byte_buf.get_i16();
+            let mut this_message_chunk = byte_buf.chunks_exact(content_bytes_cnt as usize);
+            if let Some(this_message_bytes) = this_message_chunk.next() {
+                if let Some(msg) = Message::parse(BytesMut::from(this_message_bytes)) {
+                    println!("{:?}", msg);
+                    if let Some(return_msg) = msg.handle_and_return(&ctx) {
+                        println!("got return msg => {:?}", return_msg);
+                        // 这两个Future返回的Result不必须被处理，如它们是Err，忽略
+                        wr.write_buf(&mut return_msg.to_buf()).await;
+                        wr.flush().await;
+                    }
                 }
+                byte_buf.advance(content_bytes_cnt as usize);
             }
         }
         byte_buf = BytesMut::with_capacity(1024);

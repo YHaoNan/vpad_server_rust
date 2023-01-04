@@ -1,5 +1,6 @@
 use std::borrow::BorrowMut;
 use std::process::id;
+use std::str::Bytes;
 use std::sync::{Arc, Mutex};
 
 use bytes::{Buf, BufMut, BytesMut};
@@ -42,10 +43,8 @@ pub enum Message {
 
 
 impl Message {
-    pub fn parse(byte_buf: &mut BytesMut) -> Option<Message> {
-        let content_bytes = byte_buf.get_i16();
+    pub fn parse(mut byte_buf: BytesMut) -> Option<Message> {
         let op = byte_buf.get_i8();
-        println!("op => {op}, content_bytes => {content_bytes}");
         match op {
             HANDSHAKE_OP => {
                 Some(HandShake {
