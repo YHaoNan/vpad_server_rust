@@ -131,3 +131,64 @@ prev_pos: int1            // 前一个弯音轮位置
 > 大部分设备上的弯音轮是物理滚轮，所以，不可能从一个位置跳跃到另一个不相邻的位置。 一些低端设备上使用触控条来模拟弯音轮，当你连续点击触控条上的两个不相邻位置时，所产生的行为是软件模拟了从一个位置到另一个位置的滚动。所以PitchWheel Message加入`prev_pos`字段，来记录上一个弯音位置，默认是64（弯音轮的中间位置）。 服务端可以选择使用该字段模拟弯音轮的滚动，也可以选择不实现。
 
 > 弯音轮释放时是会回弹到0的，这一行为由客户端实现，客户端在用户从弯音轮松手后会发送一条到中间位置64的消息。
+
+## CC Message
+```
+content_bytes: int2
+7
+channel: int1             // 控制哪一个CC，这里由于历史原因所以不方便改名
+value: int1               // CC的值
+```
+
+## Control Message
+```
+content_bytes: int2
+8
+operation: int1           // 要执行的控制操作
+state: int1               // 执行后的状态
+auto_close: int1          // 是否自动关闭
+```
+
+> 控制信息控制的每一个东西都具有开关两种状态（MCU协议设计如此），state设置它的状态，为0是关，为1是开。
+> auto_close指定是否自动在开启后发送一条state=0的消息
+
+### Operations
+```text
+OP_PLAY = 0             // 播放
+OP_STOP = 1             // 停止
+OP_RECORD = 2           // 录制
+OP_UNDO = 3             // 撤销
+OP_REDO = 4             // 重做
+OP_LOOP = 5             // 开启循环
+OP_SAVE = 6             // 保存
+OP_ZOOM = 7             // 缩放
+OP_CURSOR_L = 8         // 忘了
+OP_CURSOR_R = 9
+OP_CURSOR_U = 10
+OP_CURSOR_D = 11
+OP_CLICK = 12             // 节拍器
+OP_TRACK_BANK_LEFT = 13   // 轨道左移8个
+OP_TRACK_BANK_RIGHT = 14  // 轨道右移8个
+```
+
+## TrackMessage
+```
+content_bytes: int2
+9
+nth: int1           // 轨道
+state: int1         // 状态
+value: int1         // 轨道音量值 在`state == STATE_FADER_VALUE_CHANGED`时生效
+```
+
+### State
+```text
+STATE_FADER_UP = 0               // 推子抬起
+STATE_FADER_DOWN = 1             // 推子按下
+STATE_FADER_VALUE_CHANGED = 2    // 推子值改变（与value变量联动）
+STATE_SOLO_ON = 3                // SOLO开启
+STATE_SOLO_OFF = 4               // SOLO关闭
+STATE_MUTE_ON = 5                // MUTE开启
+STATE_MUTE_OFF = 6               // MUTE关闭
+STATE_REC_ON = 7                 // 录制开启
+STATE_REC_OFF = 8                // 录制关闭
+```
