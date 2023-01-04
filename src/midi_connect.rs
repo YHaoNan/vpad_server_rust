@@ -67,6 +67,14 @@ impl MidiConnector {
         self.connection.as_mut().unwrap().send_message(message);
     }
 
+    pub fn pitch_wheel_message(&mut self, pos: i8) {
+        let pos = pos as u16;
+        let pos = pos * 128;
+        self.connection.as_mut().unwrap().send_message(
+            midi_control::pitch_bend(midi_control::Channel::Ch1, pos)
+        );
+    }
+
 }
 
 lazy_static! {

@@ -7,6 +7,7 @@ use crate::arp_handler::GLOBAL_ARP_HANDLER;
 use crate::constants::*;
 use crate::midi_connect::{GLOBAL_MIDI_CONNECTOR, MidiConnector};
 use crate::message::Message::*;
+use crate::pitch_wheel;
 use crate::server::VPadMessageContext;
 
 
@@ -33,6 +34,10 @@ pub enum Message {
         dynamic_pct: i16,
         bpm: i16
     },
+    PitchWheel {
+        pos: i8,
+        prev_pos: i8
+    }
 }
 
 
@@ -69,6 +74,12 @@ impl Message {
                     bpm: byte_buf.get_i16()
                 })
             }
+            PITCHWHEEL_OP => {
+                Some(PitchWheel {
+                    pos: byte_buf.get_i8(),
+                    prev_pos: byte_buf.get_i8()
+                })
+            }
             _ => {
                 None
             }
@@ -91,6 +102,10 @@ impl Message {
             Arp { note, .. } => {
                 let identifier = format!("{}:{} on {}", ctx.addr.ip().to_string(), ctx.addr.port().to_string(), &note);
                 GLOBAL_ARP_HANDLER.handle(identifier, self);
+                None
+            }
+            PitchWheel { pos, prev_pos } => {
+                pitch_wheel::move_to_smoothly(prev_pos, pos);
                 None
             }
             _ => {

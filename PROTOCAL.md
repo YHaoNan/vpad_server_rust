@@ -18,37 +18,45 @@ op: int1
 content_bytes bytes
 ```
 
+为了消息的可扩展性，后版本的消息可能在前版本的消息基础上添加字段，所以，不论你当前的版本是否需要用到那么多字段，你都必须将`content_bytes`中的字节数量读完，然后才进入下一条消息的解析。
+
+在早期版本中，对后期版本新增字段表现出的行为是——忽略。
+
 ## HandShake Message
+
 ```
+-- version: 1
 content_bytes: int2
 1
-name: string
-platform: string
+name: string        // 名字
+platform: string    // 平台
 ```
 
 ## Midi Message
 ```
+-- version: 1
 content_bytes: int2
 2
-note: int1
-velocity: int1
-state: int1
+note: int1          // 音符
+velocity: int1      // 力度
+state: int1         // 状态
 ```
 
 ## Arp Message
 ```
+-- version: 1
 content_bytes: int2
 3
 note: int1
 velocity: int1
 state: int1
-method: int1,
-rate: int1,
-swing_pct: int1,  // 0..=100
-up_note_cnt: int1,
-velocity_automation: int1,
-dynamic_pct: int2, // 0..=200
-bpm: int2
+method: int1,               // 琶音方式
+rate: int1,                 // 琶音速率
+swing_pct: int1,            // 摇摆程度，0..=100
+up_note_cnt: int1,          // 上行音符数
+velocity_automation: int1,  // 力度包络
+dynamic_pct: int2,          // 动态范围
+bpm: int2                   // 琶音bpm
 ```
 
 下面是ArpMessage中的部分字段的枚举表，字段只限制了从名字来看，该字段该有的行为，比如`METHOD_UP`，代表该琶音是上行的琶音，至于服务端如何解析它，不做限制，所以有可能出现同样的琶音设置在不同的服务端上行为不一致的情况。
@@ -108,3 +116,18 @@ VELOCITY_STEP = 5         // 步进
 VELOCITY_RANDOM = 6       // 随机
 ```
 
+## Chord Message
+
+`-`
+
+## PitchWheel Message
+```
+content_bytes: int2
+5
+pos: int1                 // 当前弯音轮位置
+prev_pos: int1            // 前一个弯音轮位置
+```
+
+> 大部分设备上的弯音轮是物理滚轮，所以，不可能从一个位置跳跃到另一个不相邻的位置。 一些低端设备上使用触控条来模拟弯音轮，当你连续点击触控条上的两个不相邻位置时，所产生的行为是软件模拟了从一个位置到另一个位置的滚动。所以PitchWheel Message加入`prev_pos`字段，来记录上一个弯音位置，默认是64（弯音轮的中间位置）。 服务端可以选择使用该字段模拟弯音轮的滚动，也可以选择不实现。
+
+> 弯音轮释放时是会回弹到0的，这一行为由客户端实现，客户端在用户从弯音轮松手后会发送一条到中间位置64的消息。
