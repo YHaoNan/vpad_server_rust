@@ -192,3 +192,72 @@ STATE_MUTE_OFF = 6               // MUTE关闭
 STATE_REC_ON = 7                 // 录制开启
 STATE_REC_OFF = 8                // 录制关闭
 ```
+
+# 行为规范
+行为规范是VPadServer最好实现的行为，并不是硬性规定，VPadServer实现者可以合理的解释各种字段的语义，只要不会产生让用户迷惑的效果即可。
+
+## Arp Message
+出于实用性考虑，VPad只支持4 4拍的音乐，Arp以4 4拍为基准。
+
+### ArpMessage Rate
+Rate控制琶音的速率，`RATE_{x}_{y}`中，$\frac{x}{y}$代表琶音中的每个音符占一小节的多少，由于$x$始终为1，所以就是$\frac{1}{y}$，你也可以理解为琶音中的每个音符是一个$y$分音符。
+
+Rate需要与`bpm`联动才有意义，假如你的`bpm`字段是`130`，`rate`是`RATE_1_4`，那么每一个琶音音符的长度应该为：
+
+```
+一拍的时间         = 60 / bpm
+一小节的时间       = 一拍的时间 * 4
+一个琶音音符的时间 = 一小节的时间 / y
+```
+
+一些Rate是带后缀的，`_D`后缀代表该音符是附点音符，一个具有`_D`后缀的音符，它的长度等于不具有后缀的音符的长度的1.5倍。
+
+`_T`代表三连音音符，它代表在$y' = y/2$的音符`RATE_{x}_{y'}`长度的$1/3$，简单来说`RATE_1_1`的音符长度中能装下三个$RATE_1_2_T$。
+
+### ArpMessage UpNoteCnt
+控制音符改变的数量，由于历史原因，该变量被明明为`up_note_cnt`，但它并不代表上行音符的数量。
+
+当你按下arp时，第一个触发的是你按下的那个音符，接下来，音符将改变`up_note_cnt - 1`次，这个过程结束后，回到你按下的那个音符。
+
+该属性与音符如何改变无关，`method`属性才定义音符如何改变。
+
+### ArpMessage Method
+控制琶音音符的走向，与`up_note_cnt`属性联动。
+
+- `METHOD_UP`，音符每次改变上升一个八度
+- `METHOD_DOWN`，每次下降一个八度
+- `METHOD_UPDOWN`，以八度为单位，先上升再下降
+- `METHOD_DOWNUP`，以八度为单位，先下降再上升
+- `METHOD_{n}CHORD`，以按下音为根音，每次上升都是当前音上面最近一个和弦内音，和弦为n大和弦
+- `METHOD_{n}MINCHORD`，以按下音为根音，每次上升都是当前音上面最近一个和弦内音，和弦为n小和弦
+
+`up_note_cnt`决定了音符改变的次数，如`up_note_cnt`为5，`method`为`METHOD_UP`，按下的音为12，琶音器将产生的音符序列为`12, 24, 36, 48, 60, 12, 24, 36, 48, 60, ...`
+
+有一些琶音模式不是单调上升或下降的的，`UPDOWN`和`DOWNUP`就是，这种情况下，考虑第`i`个音符（i从1开始），当$up\_note\_cnt / i == 1$处，琶音器开始转弯。
+
+也就是说，当`up_note_cnt=5`时，在第3个音符处拐弯，`up_note_cnt=6`时，在第四个音符处拐弯。
+
+### ArpMessage VelocityAutomation
+`velocity_automation`用于控制琶音器的力度自动化，力度变化曲线以小节为周期单位。
+
+- `VELOCITY_UP`：力度在小节内上升
+- `VELOCITY_DOWN`：力度在小节内下降
+- `VELOCITY_UP_DOWN`：上升后下降
+- `VELOCITY_DOWN_UP`：下降后上升
+- `VELOCITY_STEP`：一强一弱
+- `VELOCITY_RANDOM`：随机
+
+力度变化的范围由`dynamic_pct`属性控制。
+
+以小节为周期单位的意思是`RATE_1_64`下，`velocity_automation`的周期是64个音符。
+
+具有附点的RATE琶音有点特殊，因为小节内最后会空出一个不足以容纳一个音符的空位，我们采取的办法是从这里开始新一轮的力度周期。
+
+严谨一点说，当RATE为`RATE_{x}_{y}_D`时，以$floor(1/(1/{y} + 1/(y\times 2)))$个音符为力度周期。
+
+### ArpMessage DynamicPct
+动态范围百分比，`dynamic_pct`，与你按下时的力度（也就是`velocity`属性）构成了力度自动化的改变范围。
+
+`dynamic_pct`的范围是`0~200`，$velocity \times \frac{dynamic\_pct}{100}$构成了力度改变的一个边界，$velocity$是力度改变的另一个边界。
+
+力度改变的范围就是从这两个里面较小的那一个改变到较大的那一个。

@@ -72,7 +72,6 @@ async fn process_socket(mut socket: TcpStream, addr: SocketAddr) {
         if len == 0 {
             continue;
         }
-        println!("len: {}, buf: {:?}", len, byte_buf);
         // 具有并且具有完整的一条消息（待修改），目前不考虑消息不完整的情况
         while byte_buf.has_remaining() {
             // 解包content_bytes

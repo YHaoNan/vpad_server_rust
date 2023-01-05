@@ -1,6 +1,7 @@
 use std::cmp::{max, min};
 use std::collections::HashMap;
 use std::iter::{Map, once};
+use std::ops::{Div, Mul};
 use std::rc::Rc;
 use std::sync::Mutex;
 use std::time::Duration;
@@ -19,6 +20,7 @@ pub struct ArpHandler {
     // 存储的实际是一个琶音器识别符到一个它的关闭通道的映射
     // 在关闭时，可以通过识别符找出通道，然后向其发送消息
     arp_tasks: Mutex<HashMap<String, tokio::sync::oneshot::Sender<()>>>,
+    velocity_automation_span: Vec<i8>,
     rate_scales: Vec<f64>
 }
 
@@ -75,9 +77,10 @@ fn build_requirements(message: Message, arp_handler: &ArpHandler) -> Option<(Cir
         let beat_dur = Duration::from_secs_f64(60 as f64 / bpm as f64);
         // duration once arp (no swing)
         let once_arp_dur = beat_dur.mul_f64(arp_handler.rate_scales[rate as usize]);
+        let velocity_automation_span = arp_handler.velocity_automation_span[rate as usize];
 
         let mut note_generator = build_note_generator(note, method, up_note_cnt);
-        let mut velocity_generator = build_velocity_generator(velocity, velocity_automation, dynamic_pct, up_note_cnt);
+        let mut velocity_generator = build_velocity_generator(velocity, velocity_automation, dynamic_pct,  velocity_automation_span);
         let mut pulse_generator = build_pulse_generator(once_arp_dur, swing_pct);
 
         Some((note_generator, velocity_generator, pulse_generator))
@@ -112,7 +115,7 @@ fn count_to_vec_up_down<F>(to: i8, mut f: F) -> Vec<i8>
     })
 }
 
-fn build_velocity_generator(base_velocity: i8, velocity_automation: i8, dynamic_pct: i16, up_note_cnt: i8) -> CircleContainer<i8> {
+fn build_velocity_generator(base_velocity: i8, velocity_automation: i8, dynamic_pct: i16, velocity_automation_span: i8) -> CircleContainer<i8> {
     /**
      * dynamic_pct为0~200，代表着力度的另一端，我们假设它是another_velocity，则力度生成器产生的力度将在base_velocity到another_velocity的范围内
      *      当dynamic_pct小于100时，力度生成器的范围是[another_velocity, base_velocity]
@@ -125,31 +128,31 @@ fn build_velocity_generator(base_velocity: i8, velocity_automation: i8, dynamic_
 
     let min_velo = min(base_velocity, another_velocity);
     let max_velo = max(base_velocity, another_velocity);
-    let step = (max_velo - min_velo) / up_note_cnt;
+    let step = (max_velo - min_velo) / velocity_automation_span;
 
     let mut rng = rand::thread_rng();
 
     let velocity_vec = match velocity_automation {
         VELOCITY_UP => {
-            count_to_vec(up_note_cnt, |i| min_velo + i * step)
+            count_to_vec(velocity_automation_span, |i| min_velo + i * step)
         }
         VELOCITY_DOWN => {
-            count_to_vec(up_note_cnt, |i| max_velo - i * step)
+            count_to_vec(velocity_automation_span, |i| max_velo - i * step)
         }
         VELOCITY_UP_DOWN => {
-            count_to_vec_up_down(up_note_cnt, |i| min_velo + i * step * 2)
+            count_to_vec_up_down(velocity_automation_span, |i| min_velo + i * step * 2)
         }
         VELOCITY_DOWN_UP => {
-            count_to_vec_up_down(up_note_cnt, |i| max_velo - i * step * 2)
+            count_to_vec_up_down(velocity_automation_span, |i| max_velo - i * step * 2)
         }
         VELOCITY_RANDOM => {
-            count_to_vec(up_note_cnt, |i| rng.gen_range(min_velo..=max_velo))
+            count_to_vec(velocity_automation_span, |i| rng.gen_range(min_velo..=max_velo))
         }
         VELOCITY_STEP => {
-            count_to_vec(up_note_cnt, |i| if i % 2 == 0 { max_velo } else { min_velo })
+            count_to_vec(velocity_automation_span, |i| if i % 2 == 0 { max_velo } else { min_velo })
         }
         _ => {
-            count_to_vec(up_note_cnt, |i| base_velocity)
+            count_to_vec(velocity_automation_span, |i| base_velocity)
         }
     };
     CircleContainer::new(velocity_vec)
@@ -329,6 +332,30 @@ const RATE_1_64_T: i8 = 19;
 lazy_static! {
     pub static ref GLOBAL_ARP_HANDLER: ArpHandler = ArpHandler {
         arp_tasks: Mutex::new(HashMap::new()),
+        velocity_automation_span: {
+            let mut va_span: Vec<i8> = vec![0i8; 20];
+            va_span[RATE_1_1 as usize] = 1;
+            va_span[RATE_1_1_T as usize] = 1;
+            va_span[RATE_1_2 as usize] = 2;
+            va_span[RATE_1_2_D as usize] = 1;
+            va_span[RATE_1_2_T as usize] = 3;
+            va_span[RATE_1_4 as usize] = 4;
+            va_span[RATE_1_4_D as usize] = 2;
+            va_span[RATE_1_4_T as usize] = 6;
+            va_span[RATE_1_8 as usize] = 8;
+            va_span[RATE_1_8_D as usize] = 5;
+            va_span[RATE_1_8_T as usize] = 12;
+            va_span[RATE_1_16 as usize] = 16;
+            va_span[RATE_1_16_D as usize] = 10;
+            va_span[RATE_1_16_T as usize] = 24;
+            va_span[RATE_1_32 as usize] = 32;
+            va_span[RATE_1_32_D as usize] = 21;
+            va_span[RATE_1_32_T as usize] = 48;
+            va_span[RATE_1_64 as usize] = 64;
+            va_span[RATE_1_64_D as usize] = 42;
+            va_span[RATE_1_64_T as usize] = 96;
+            va_span
+        },
         rate_scales: {
             let mut rate_scale: Vec<f64> = vec![0.0f64; 20];
             rate_scale[RATE_1_1 as usize] = 4f64;
