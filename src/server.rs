@@ -1,15 +1,19 @@
-use std::fmt::{Debug};
+use std::fmt::{Debug, format};
 use std::io::{Cursor, Error, Read};
 use std::net::{SocketAddr};
 use std::result;
 use std::sync::{Arc, Mutex};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
+use futures_util::stream::{SplitSink, SplitStream};
+use futures_util::{StreamExt, SinkExt};
 use tokio;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc};
 use tokio::sync::mpsc::error::SendError;
+use tokio_util::codec::Framed;
 use crate::message::Message;
+use crate::message_codec::MessageCodec;
 use crate::midi_connect::{GLOBAL_MIDI_CONNECTOR, MidiConnector};
 
 pub type Result = result::Result<(), VPadServerError>;
@@ -53,44 +57,70 @@ impl<'a> VPadServer<'a> {
 
 }
 
-pub struct VPadMessageContext<'a> {
-    pub addr: &'a SocketAddr
+pub struct VPadMessageContext {
+    pub addr: SocketAddr
 }
+
+type MessageFramedStream = SplitStream<Framed<TcpStream, MessageCodec>>;
+type MessageFramedSink = SplitSink<Framed<TcpStream, MessageCodec>, Message>;
 
 #[allow(unused_must_use)]
 async fn process_socket(mut socket: TcpStream, addr: SocketAddr) {
-    println!("{:?}", addr);
-    let (mut rd, mut wr) = socket.split();
-    let mut byte_buf = BytesMut::with_capacity(1024);
+    log::info!("Got a new connection from: {:?}", addr);
 
-    let ctx = VPadMessageContext {
-        addr: &addr
-    };
+    let framed = Framed::new(socket, MessageCodec{});
+    let (frame_writer, frame_reader) =
+        framed.split::<Message>();
 
-    while let Ok(len) = rd.read_buf(&mut byte_buf).await {
-        // Eof return
-        if len == 0 {
-            continue;
-        }
-        // 具有并且具有完整的一条消息（待修改），目前不考虑消息不完整的情况
-        while byte_buf.has_remaining() {
-            // 解包content_bytes
-            let content_bytes_cnt = byte_buf.get_i16();
-            let mut this_message_chunk = byte_buf.chunks_exact(content_bytes_cnt as usize);
-            if let Some(this_message_bytes) = this_message_chunk.next() {
-                if let Some(msg) = Message::parse(BytesMut::from(this_message_bytes)) {
-                    println!("{:?}", msg);
-                    if let Some(return_msg) = msg.handle_and_return(&ctx) {
-                        println!("got return msg => {:?}", return_msg);
-                        // 这两个Future返回的Result不必须被处理，如它们是Err，忽略
-                        wr.write_buf(&mut return_msg.to_buf()).await;
-                        wr.flush().await;
+    let (msg_tx, msg_rx) = mpsc::channel::<Message>(4);
+
+    let ctx = VPadMessageContext { addr };
+
+    let mut read_task = tokio::spawn(async move {
+        read_from_client(frame_reader, msg_tx, ctx).await;
+    });
+
+    let mut write_task = tokio::spawn(async move {
+        write_to_client(frame_writer, msg_rx).await;
+    });
+
+    if tokio::try_join!(&mut read_task, &mut write_task).is_err() {
+        log::info!("read/write task is terminated!");
+        read_task.abort();
+        write_task.abort();
+    }
+}
+
+async fn read_from_client(mut reader: MessageFramedStream, msg_tx: mpsc::Sender<Message>, ctx: VPadMessageContext) {
+    loop {
+        match reader.next().await {
+            None => {
+                log::info!("Client closed");
+                break;
+            }
+            Some(Err(e)) => {
+                log::error!("Read from client error: {:?}", e);
+                break;
+            }
+            Some(Ok(msg)) => {
+                log::info!("Got an message => {:?}", msg);
+                if let Some(return_msg) = msg.handle_and_return(&ctx) {
+                    log::info!("Return msg => {:?}", return_msg);
+                    if msg_tx.send(return_msg).await.is_err() {
+                        log::error!("Error to send return msg to sender channel");
                     }
                 }
-                byte_buf.advance(content_bytes_cnt as usize);
             }
         }
-        byte_buf = BytesMut::with_capacity(1024);
+    }
+}
+
+async fn write_to_client(mut writer: MessageFramedSink, mut msg_rx: mpsc::Receiver<Message>) {
+    println!("write to client");
+    while let Some(msg) = msg_rx.recv().await {
+        if writer.send(msg).await.is_err() {
+            log::error!("Error to sink msg to client");
+        }
     }
 }
 

@@ -36,7 +36,7 @@ impl ArpHandler {
     fn start_arp_task(&self, identifier: String, message: Message) {
         if let Some((mut note_generator, mut velocity_generator, mut pulse_generator)) = build_requirements(message, self) {
             let (stop_sender, mut stop_receiver) = tokio::sync::oneshot::channel();
-            tokio::task::spawn_blocking(move || {
+            tokio::task::spawn(async move {
                 let mut last_note: Option<i8> = None;
                 for _ in pulse_generator {
                     if let Some(note) = last_note { send_midi_off(note); }

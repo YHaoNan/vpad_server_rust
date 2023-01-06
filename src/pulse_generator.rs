@@ -76,7 +76,8 @@ impl Iterator for PulseGenerator {
                 self._iter = i + 1;
                 return Some(i)
             }
-            thread::sleep(self.check_interval);
+            // thread::sleep(self.check_interval);
+            tokio::time::sleep(self.check_interval);
         }
         None
     }

@@ -20,7 +20,7 @@ pub fn move_to_smoothly(prev_pos: i8, pos: i8) {
         else { (prev_pos..=pos).collect() };                    // 前一个更小
     // 广播停止事件，让之前所有正在执行的pitchwheel停下来
     &STOP_CHAN.0.send(());
-    tokio::task::spawn_blocking(move || {
+    tokio::task::spawn(async move {
         // 订阅停止事件
         let rx = &mut STOP_CHAN.0.subscribe();
         for value in vec {
@@ -29,7 +29,7 @@ pub fn move_to_smoothly(prev_pos: i8, pos: i8) {
                 break;
             }
             move_to(value);
-            thread::sleep(DUR);
+            tokio::time::sleep(DUR);
         }
     });
 }

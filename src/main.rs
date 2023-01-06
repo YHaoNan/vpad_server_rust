@@ -11,8 +11,12 @@ mod arp_handler;
 mod pulse_generator;
 mod circle_container;
 mod pitch_wheel;
+mod message_codec;
 
 #[tokio::main]
 async fn main() {
+    log4rs::init_file("log4rs-config.yaml", Default::default()).unwrap();
+    log::info!("log4rs initialized!");
+    log::info!("starting command line client!");
     cmd::startup().await;
 }

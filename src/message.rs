@@ -1,5 +1,4 @@
 use std::borrow::BorrowMut;
-use std::process::id;
 use std::str::Bytes;
 use std::sync::{Arc, Mutex};
 
@@ -47,54 +46,6 @@ pub enum Message {
 
 
 impl Message {
-    pub fn parse(mut byte_buf: BytesMut) -> Option<Message> {
-        let op = byte_buf.get_i8();
-        match op {
-            HANDSHAKE_OP => {
-                Some(HandShake {
-                    name: byte_buf.get_string(),
-                    platform: byte_buf.get_string()
-                })
-            }
-            MIDI_OP => {
-                Some(Midi {
-                    note: byte_buf.get_i8(),
-                    velocity: byte_buf.get_i8(),
-                    state: byte_buf.get_i8()
-                })
-            }
-            ARP_OP => {
-                Some(Arp {
-                    note: byte_buf.get_i8(),
-                    velocity: byte_buf.get_i8(),
-                    state: byte_buf.get_i8(),
-                    method: byte_buf.get_i8(),
-                    rate: byte_buf.get_i8(),
-                    swing_pct: byte_buf.get_i8(),
-                    up_note_cnt: byte_buf.get_i8(),
-                    velocity_automation: byte_buf.get_i8(),
-                    dynamic_pct: byte_buf.get_i16(),
-                    bpm: byte_buf.get_i16()
-                })
-            }
-            PITCHWHEEL_OP => {
-                Some(PitchWheel {
-                    pos: byte_buf.get_i8(),
-                    prev_pos: byte_buf.get_i8()
-                })
-            }
-            CC_OP => {
-                Some(CC {
-                    channel: byte_buf.get_i8(),
-                    value: byte_buf.get_i8()
-                })
-            }
-            _ => {
-                None
-            }
-        }
-    }
-
     pub fn handle_and_return<'a>(self, ctx: &'a VPadMessageContext) -> Option<Message> {
         match self {
             HandShake { .. } => {
@@ -127,46 +78,5 @@ impl Message {
             }
         }
     }
-
-    pub fn to_buf(&self) -> impl Buf {
-        let mut buf = BytesMut::new();
-        match self {
-            HandShake {name, platform} => {
-                let name = name.as_bytes();
-                let platform = platform.as_bytes();
-
-                buf.put_i16((name.len() + platform.len()) as i16);
-                buf.put_i8(HANDSHAKE_OP);
-                buf.put_string(name);
-                buf.put_string(platform);
-            }
-            _ => { /* nothing to do */ }
-        }
-        buf
-    }
 }
 
-
-trait StringLikeBuf {
-    fn get_string(&mut self) -> String;
-    fn put_string(&mut self, string: &[u8]);
-}
-
-// Provide BytesMut.set_string以及BytesMut.get_string
-impl StringLikeBuf for BytesMut {
-    fn get_string(&mut self) -> String {
-        let len = self.get_i8();
-        let mut vec = Vec::with_capacity(len as usize);
-        for _ in 0..len {
-            vec.push(self.get_u8());
-        }
-        String::from_utf8(vec).unwrap()
-    }
-
-    fn put_string(&mut self, string: &[u8]) {
-        self.put_i8(string.len() as i8);
-        for u8 in string {
-            self.put_u8(*u8);
-        }
-    }
-}
