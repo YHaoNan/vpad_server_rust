@@ -1,5 +1,7 @@
 use std::collections::VecDeque;
 use std::ops::{Add, Mul};
+use std::pin::Pin;
+use std::task::{Context, Poll};
 use std::thread;
 use std::time::{Duration, SystemTime};
 
@@ -76,8 +78,7 @@ impl Iterator for PulseGenerator {
                 self._iter = i + 1;
                 return Some(i)
             }
-            // thread::sleep(self.check_interval);
-            tokio::time::sleep(self.check_interval);
+            thread::sleep(self.check_interval);
         }
         None
     }

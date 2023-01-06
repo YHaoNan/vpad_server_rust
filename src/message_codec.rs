@@ -51,8 +51,11 @@ impl codec::Decoder for MessageCodec {
     type Error = MessageCodecError;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        if src.len() < 2 {
+        if src.len() == 0 {
             return Ok(None);
+        }
+        if src.len() < 2 {
+            return Err(DecodeError("Incompleted Message"));
         }
 
         let first_two = &src[0..2];
@@ -61,7 +64,7 @@ impl codec::Decoder for MessageCodec {
 
         // 如果消息不完整
         if remaind_bytes_cnt as usize > src.len() - 2 {
-            return Ok(None);
+            return Err(DecodeError("Incompleted Message"));
         }
         // 跳过前两个字节
         src.advance(2);

@@ -99,8 +99,7 @@ async fn read_from_client(mut reader: MessageFramedStream, msg_tx: mpsc::Sender<
                 break;
             }
             Some(Err(e)) => {
-                log::error!("Read from client error: {:?}", e);
-                break;
+                log::info!("Read from client error: {:?}", e);
             }
             Some(Ok(msg)) => {
                 log::info!("Got an message => {:?}", msg);
@@ -116,7 +115,6 @@ async fn read_from_client(mut reader: MessageFramedStream, msg_tx: mpsc::Sender<
 }
 
 async fn write_to_client(mut writer: MessageFramedSink, mut msg_rx: mpsc::Receiver<Message>) {
-    println!("write to client");
     while let Some(msg) = msg_rx.recv().await {
         if writer.send(msg).await.is_err() {
             log::error!("Error to sink msg to client");
