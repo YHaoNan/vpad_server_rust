@@ -1,5 +1,7 @@
 use std::borrow::BorrowMut;
 use std::io::stdin;
+use std::net::{IpAddr, Ipv4Addr};
+use std::str::FromStr;
 use std::sync::MutexGuard;
 
 use crate::constants;
@@ -25,7 +27,7 @@ pub async fn startup() {
 
 
 async fn start_server() {
-	let vpad_server = server::VPadServer::bind("0.0.0.0:1236");
+	let vpad_server = server::VPadServer::bind(IpAddr::from_str("0.0.0.0").expect(""), 1236);
 	vpad_server.start().await.expect("Cannot start VPadServer.");
 }
 

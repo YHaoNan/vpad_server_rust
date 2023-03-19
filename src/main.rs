@@ -12,6 +12,7 @@ mod pulse_generator;
 mod circle_container;
 mod pitch_wheel;
 mod message_codec;
+mod chord_handler;
 
 #[tokio::main]
 async fn main() {

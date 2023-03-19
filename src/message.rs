@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 
 use bytes::{Buf, BufMut, BytesMut};
 use crate::arp_handler::GLOBAL_ARP_HANDLER;
+use crate::chord_handler::GLOBAL_CHORD_HANDLER;
 use crate::constants::*;
 use crate::midi_connect::{GLOBAL_MIDI_CONNECTOR, MidiConnector};
 use crate::message::Message::*;
@@ -34,6 +35,16 @@ pub enum Message {
         dynamic_pct: i16,
         bpm: i16
     },
+    Chord {
+        note: i8,
+        velocity: i8,
+        state: i8,
+        bpm: i16,
+        chord_type: i8,
+        chord_level: i8,
+        transpose: i8,
+        arp_delay: i8
+    },
     PitchWheel {
         pos: i8,
         prev_pos: i8
@@ -63,7 +74,12 @@ impl Message {
                 let identifier = format!("{}:{} on {}", ctx.addr.ip().to_string(), ctx.addr.port().to_string(), &note);
                 GLOBAL_ARP_HANDLER.handle(identifier, self);
                 None
-            }
+            },
+            Chord { note, .. } => {
+                let identifier = format!("{}:{} on {}", ctx.addr.ip().to_string(), ctx.addr.port().to_string(), &note);
+                GLOBAL_CHORD_HANDLER.handle(identifier, self);
+                None
+            },
             PitchWheel { pos, prev_pos } => {
                 pitch_wheel::move_to_smoothly(prev_pos, pos);
                 None

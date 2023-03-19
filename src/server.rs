@@ -1,14 +1,15 @@
 use std::fmt::{Debug, format};
 use std::io::{Cursor, Error, Read};
-use std::net::{SocketAddr};
+use std::net::{IpAddr, SocketAddr, SocketAddrV4};
 use std::result;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{StreamExt, SinkExt};
 use tokio;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{TcpListener, TcpStream};
+use tokio::net::{TcpListener, TcpSocket, TcpStream};
 use tokio::sync::{mpsc};
 use tokio::sync::mpsc::error::SendError;
 use tokio_util::codec::Framed;
@@ -20,22 +21,28 @@ pub type Result = result::Result<(), VPadServerError>;
 
 type MPSCChan = (mpsc::Sender<()>, mpsc::Receiver<()>);
 
-pub struct VPadServer<'a> {
-    pub addr: &'a str,
+pub struct VPadServer {
+    pub ipaddr: IpAddr,
+    pub port: u16,
     close_channel: MPSCChan,
 }
 
-impl<'a> VPadServer<'a> {
-    pub fn bind(addr: &'a str)  -> VPadServer {
+impl VPadServer {
+    pub fn bind(ipaddr:IpAddr, port: u16)  -> VPadServer {
         VPadServer {
-            addr,
+            ipaddr, port,
             close_channel: mpsc::channel(1)
         }
     }
 
     pub async fn start(self) -> Result {
         let (_tx, mut rx) = self.close_channel;
-        let listener = TcpListener::bind(self.addr).await?;
+
+        let socket = TcpSocket::new_v4()?;
+        socket.set_reuseaddr(true)?;
+        socket.bind(SocketAddr::new(self.ipaddr, self.port))?;
+
+        let listener = socket.listen(1024)?;
         loop {
             tokio::select! {
                 Ok((socket, addr)) = listener.accept() => {

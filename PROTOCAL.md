@@ -118,7 +118,45 @@ VELOCITY_RANDOM = 6       // 随机
 
 ## Chord Message
 
-`-`
+```
+--version: 1
+content_bytes: int2
+4
+note: int1          // 音符
+velocity: int1      // 力度
+state: int1         // 状态
+chord_type: int1    // 和弦类型
+chord_level: int1   // 和弦级数
+transpose: int1     // 转位
+arp_delay: int1     // 琶音程度   百分数   代表当前一个拍的百分之多少琶音完成
+                    // 我们假设bpm=130，那么一拍就是0.461秒，若arp_delay=50，那么代表在0.461*50%=0.2305秒之内完成琶音
+                    // 也就是说，和弦内的所有音符，在0.2305秒之内被均匀的放出，顺序是自底向上
+```
+
+transpose
+
+### chord_type
+```
+CHORD_TYPE_MAJOR = 0   // 大和弦  
+CHORD_TYPE_MINOR = 1   // 小和弦  使用b3, b7音
+CHORD_TYPE_DOM   = 2   // 属和弦  使用b7音 （从7和弦开始）
+CHORD_TYPE_AUG   = 3   // 增和弦  使用#5音
+CHORD_TYPE_DIM   = 4   // 减和弦  使用b3, b5音
+CHORD_TYPE_SUS2  = 5   // 挂2和弦 3音变2音
+CHORD_TYPE_SUS4  = 6   // 挂4和弦 3音变4音
+CHORD_TYPE_ADD6  = 7   // 加6和弦 在原始和弦上加高6音
+CHORD_TYPE_ADD9  = 8   // 加9和弦 在原始和弦上加高9音
+```
+
+### chord_level
+```
+CHORD_LEVEL_3    = 0   // 3和弦  0, 4, 7
+CHORD_LEVEL_7    = 1   // 7和弦  0, 4, 7, 11
+CHORD_LEVEL_9    = 2   // 9和弦  0, 4, 7, 11, 14
+CHORD_LEVEL_11   = 3   // 11和弦 0, 4, 7, 11, 14, 17
+CHORD_LEVEL_13   = 4   // 13和弦 0, 4, 7, 11, 14, 17, 21
+```
+
 
 ## PitchWheel Message
 ```

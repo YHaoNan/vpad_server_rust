@@ -104,6 +104,18 @@ impl codec::Decoder for MessageCodec {
                     bpm: remaind_bytes.get_i16()
                 })
             }
+            CHORD_OP => {
+                Some(Chord {
+                    note: remaind_bytes.get_i8(),
+                    velocity: remaind_bytes.get_i8(),
+                    state: remaind_bytes.get_i8(),
+                    chord_type: remaind_bytes.get_i8(),
+                    chord_level: remaind_bytes.get_i8(),
+                    transpose: remaind_bytes.get_i8(),
+                    arp_delay: remaind_bytes.get_i8(),
+                    bpm: remaind_bytes.get_i16()
+                })
+            }
             PITCHWHEEL_OP => {
                 Some(PitchWheel {
                     pos: remaind_bytes.get_i8(),
