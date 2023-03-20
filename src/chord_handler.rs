@@ -57,9 +57,9 @@ impl ChordHandler {
     }
 
     fn stop_chord_task(&self, identifier: String, message: Message) {
-        if let Chord { note, velocity , chord_type, chord_level, transpose, arp_delay, ..} = message {
+        if let Chord { note, chord_type, chord_level, transpose, ..} = message {
             if let Some(tx) = self.chord_tasks.lock().unwrap().remove(&identifier) {
-                tx.send(());
+                tx.send(()).expect("error when send chord handler stop message");
             }
             let mut note_offs = build_note_offsets(chord_type, chord_level);
             transpose_vec(&mut note_offs, transpose);
@@ -90,9 +90,9 @@ fn transpose_vec(note_offs: &mut Vec<i8>, transpose: i8) {
     }
 }
 fn transpose_vec_once(note_offs: &mut Vec<i8>) {
+    if note_offs.len() == 0 { return; }
     // 进行一次转置，把最上面的降低12，到最下面
     let lastidx = note_offs.len() - 1;
-    if lastidx < 0 { return; }
     let last = note_offs[lastidx];
     for i in (0..lastidx).rev() {
         note_offs[i + 1] = note_offs[i];

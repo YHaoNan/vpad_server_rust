@@ -1,21 +1,16 @@
-use std::fmt::{Debug, format};
-use std::io::{Cursor, Error, Read};
-use std::net::{IpAddr, SocketAddr, SocketAddrV4};
+use std::fmt::{Debug};
+use std::io::{Error};
+use std::net::{IpAddr, SocketAddr};
 use std::result;
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
-use bytes::{Buf, BufMut, Bytes, BytesMut};
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{StreamExt, SinkExt};
 use tokio;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{TcpListener, TcpSocket, TcpStream};
+use tokio::net::{TcpSocket, TcpStream};
 use tokio::sync::{mpsc};
 use tokio::sync::mpsc::error::SendError;
 use tokio_util::codec::Framed;
 use crate::message::Message;
 use crate::message_codec::MessageCodec;
-use crate::midi_connect::{GLOBAL_MIDI_CONNECTOR, MidiConnector};
 
 pub type Result = result::Result<(), VPadServerError>;
 
@@ -72,7 +67,7 @@ type MessageFramedStream = SplitStream<Framed<TcpStream, MessageCodec>>;
 type MessageFramedSink = SplitSink<Framed<TcpStream, MessageCodec>, Message>;
 
 #[allow(unused_must_use)]
-async fn process_socket(mut socket: TcpStream, addr: SocketAddr) {
+async fn process_socket(socket: TcpStream, addr: SocketAddr) {
     log::info!("Got a new connection from: {:?}", addr);
 
     let framed = Framed::new(socket, MessageCodec{});

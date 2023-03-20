@@ -1,8 +1,3 @@
-use std::borrow::{Borrow, BorrowMut};
-use std::cmp::{max, min};
-use std::ops::Range;
-use std::sync::Mutex;
-use std::thread;
 use std::time::Duration;
 use lazy_static::lazy_static;
 use crate::midi_connect::GLOBAL_MIDI_CONNECTOR;
@@ -19,7 +14,7 @@ pub fn move_to_smoothly(prev_pos: i8, pos: i8) {
         if prev_pos > pos { (pos..=prev_pos).rev().collect() } // 如果前一个更大，由于Rust只能创建正序Range，所以反过来创建并rev
         else { (prev_pos..=pos).collect() };                    // 前一个更小
     // 广播停止事件，让之前所有正在执行的pitchwheel停下来
-    &STOP_CHAN.0.send(());
+    let _ = &STOP_CHAN.0.send(());
     tokio::task::spawn(async move {
         // 订阅停止事件
         let rx = &mut STOP_CHAN.0.subscribe();
@@ -29,7 +24,7 @@ pub fn move_to_smoothly(prev_pos: i8, pos: i8) {
                 break;
             }
             move_to(value);
-            tokio::time::sleep(DUR);
+            tokio::time::sleep(DUR).await;
         }
     });
 }

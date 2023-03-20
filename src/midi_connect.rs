@@ -1,13 +1,12 @@
-use std::borrow::BorrowMut;
 use std::string::ToString;
-use std::sync::{Arc, Mutex};
+use std::sync::{Mutex};
 use lazy_static::lazy_static;
 use midi_control::Channel::Ch1;
 use midi_control::MidiMessageSend;
 use midir::{ConnectError, InitError, MidiOutput, MidiOutputConnection};
-use crate::{midi_connect::MidiConnectorError::PortNotFoundError, message::Message};
+use crate::{midi_connect::MidiConnectorError::PortNotFoundError};
 
-type Result<T> = std::result::Result<T, MidiConnectorError>;
+pub type Result<T> = std::result::Result<T, MidiConnectorError>;
 
 pub struct MidiConnector {
     name: String,
@@ -65,7 +64,7 @@ impl MidiConnector {
         } else {
             midi_control::note_on(midi_control::Channel::Ch1, note as u8, velocity as u8)
         };
-        self.connection.as_mut().unwrap().send_message(message);
+        self.connection.as_mut().unwrap().send_message(message).expect("error when send message");
     }
 
     pub fn pitch_wheel_message(&mut self, pos: i8) {
@@ -73,13 +72,13 @@ impl MidiConnector {
         let pos = pos * 128;
         self.connection.as_mut().unwrap().send_message(
             midi_control::pitch_bend(midi_control::Channel::Ch1, pos)
-        );
+        ).expect("error to send pitchwheel message");
     }
 
     pub fn cc_message(&mut self, channel: i8, value: i8) {
         self.connection.as_mut().unwrap().send_message(
             midi_control::control_change(Ch1, channel as u8, value as u8)
-        );
+        ).expect("error to send cc message");
     }
 }
 

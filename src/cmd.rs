@@ -1,11 +1,9 @@
-use std::borrow::BorrowMut;
 use std::io::stdin;
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::{IpAddr};
 use std::str::FromStr;
-use std::sync::MutexGuard;
 
 use crate::constants;
-use crate::midi_connect::{GLOBAL_MIDI_CONNECTOR, MidiConnector};
+use crate::midi_connect::{GLOBAL_MIDI_CONNECTOR};
 use crate::server;
 
 const SLOGAN: &str = r"

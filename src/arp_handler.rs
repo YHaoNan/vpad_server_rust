@@ -1,13 +1,9 @@
 use std::cmp::{max, min};
 use std::collections::HashMap;
-use std::iter::{Map, once};
-use std::ops::{Div, Mul};
-use std::rc::Rc;
 use std::sync::Mutex;
 use std::time::Duration;
 use lazy_static::lazy_static;
 use rand::Rng;
-use tokio::task::JoinHandle;
 use crate::circle_container::CircleContainer;
 use crate::message::Message;
 use crate::message::Message::Arp;
@@ -34,7 +30,7 @@ impl ArpHandler {
     }
 
     fn start_arp_task(&self, identifier: String, message: Message) {
-        if let Some((mut note_generator, mut velocity_generator, mut pulse_generator)) = build_requirements(message, self) {
+        if let Some((mut note_generator, mut velocity_generator, pulse_generator)) = build_requirements(message, self) {
             let (stop_sender, mut stop_receiver) = tokio::sync::oneshot::channel();
             tokio::task::spawn_blocking(move || {
                 let mut last_note: Option<i8> = None;
@@ -52,7 +48,7 @@ impl ArpHandler {
 
     fn stop_arp_task(&self, identifier: String) {
         if let Some(tx) = self.arp_tasks.lock().unwrap().remove(&identifier) {
-            tx.send(());
+            tx.send(()).expect("error when stop arp task");
         }
     }
 
@@ -79,9 +75,9 @@ fn build_requirements(message: Message, arp_handler: &ArpHandler) -> Option<(Cir
         let once_arp_dur = beat_dur.mul_f64(arp_handler.rate_scales[rate as usize]);
         let velocity_automation_span = arp_handler.velocity_automation_span[rate as usize];
 
-        let mut note_generator = build_note_generator(note, method, up_note_cnt);
-        let mut velocity_generator = build_velocity_generator(velocity, velocity_automation, dynamic_pct,  velocity_automation_span);
-        let mut pulse_generator = build_pulse_generator(once_arp_dur, swing_pct);
+        let note_generator = build_note_generator(note, method, up_note_cnt);
+        let velocity_generator = build_velocity_generator(velocity, velocity_automation, dynamic_pct,  velocity_automation_span);
+        let pulse_generator = build_pulse_generator(once_arp_dur, swing_pct);
 
         Some((note_generator, velocity_generator, pulse_generator))
     } else {
@@ -146,13 +142,13 @@ fn build_velocity_generator(base_velocity: i8, velocity_automation: i8, dynamic_
             count_to_vec_up_down(velocity_automation_span, |i| max_velo - i * step * 2)
         }
         VELOCITY_RANDOM => {
-            count_to_vec(velocity_automation_span, |i| rng.gen_range(min_velo..=max_velo))
+            count_to_vec(velocity_automation_span, |_| rng.gen_range(min_velo..=max_velo))
         }
         VELOCITY_STEP => {
             count_to_vec(velocity_automation_span, |i| if i % 2 == 0 { max_velo } else { min_velo })
         }
         _ => {
-            count_to_vec(velocity_automation_span, |i| base_velocity)
+            count_to_vec(velocity_automation_span, |_| base_velocity)
         }
     };
     CircleContainer::new(velocity_vec)

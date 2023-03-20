@@ -1,12 +1,8 @@
 use std::borrow::BorrowMut;
-use std::str::Bytes;
-use std::sync::{Arc, Mutex};
-
-use bytes::{Buf, BufMut, BytesMut};
 use crate::arp_handler::GLOBAL_ARP_HANDLER;
 use crate::chord_handler::GLOBAL_CHORD_HANDLER;
 use crate::constants::*;
-use crate::midi_connect::{GLOBAL_MIDI_CONNECTOR, MidiConnector};
+use crate::midi_connect::{GLOBAL_MIDI_CONNECTOR};
 use crate::message::Message::*;
 use crate::pitch_wheel;
 use crate::server::VPadMessageContext;
@@ -87,9 +83,6 @@ impl Message {
             CC { channel, value } => {
                 let mut midi_connector = GLOBAL_MIDI_CONNECTOR.lock().unwrap();
                 midi_connector.borrow_mut().cc_message(channel, value);
-                None
-            }
-            _ => {
                 None
             }
         }
