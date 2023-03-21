@@ -3,7 +3,7 @@
 extern crate core;
 
 mod cmd;
-// mod gui;
+mod ui;
 mod server;
 mod message;
 mod constants;
@@ -15,6 +15,8 @@ mod pitch_wheel;
 mod message_codec;
 mod chord_handler;
 mod public;
+mod control_handler;
+mod midi_note_to_number;
 
 #[tokio::main]
 async fn main() {
@@ -22,5 +24,5 @@ async fn main() {
     log::info!("log4rs initialized!");
     log::info!("starting command line client!");
     cmd::startup().await;
-    // gui::launch();
+    // ui::gui::launch();
 }

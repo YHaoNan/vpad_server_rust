@@ -5,6 +5,7 @@ pub const ARP_OP: i8 = 3;
 pub const CHORD_OP: i8 = 4;
 pub const PITCHWHEEL_OP: i8 = 5;
 pub const CC_OP: i8 = 7;
+pub const CONTROL_OP: i8 = 8;
 
 
 pub const SERVER_NAME: &str = "VPadServer";

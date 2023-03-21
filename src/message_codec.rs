@@ -126,6 +126,13 @@ impl codec::Decoder for MessageCodec {
                     value: remaind_bytes.get_i8()
                 })
             }
+            CONTROL_OP => {
+                Some(ControlMessage {
+                    operation: remaind_bytes.get_i8(),
+                    state: remaind_bytes.get_i8(),
+                    auto_close: remaind_bytes.get_i8()
+                })
+            }
             _ => {
                 log::error!("Got an unsupportted message op {}", op);
                 return Err(DecodeError("Unsupportted Message"))

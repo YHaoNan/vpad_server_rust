@@ -2,6 +2,7 @@ use std::borrow::BorrowMut;
 use crate::arp_handler::GLOBAL_ARP_HANDLER;
 use crate::chord_handler::GLOBAL_CHORD_HANDLER;
 use crate::constants::*;
+use crate::control_handler::{DawType, handle_control_msg};
 use crate::midi_connect::{GLOBAL_MIDI_CONNECTOR};
 use crate::message::Message::*;
 use crate::pitch_wheel;
@@ -48,7 +49,12 @@ pub enum Message {
     CC {
         channel: i8,
         value: i8
-    }
+    },
+    ControlMessage {
+        operation: i8,
+        state: i8,
+        auto_close: i8
+    },
 }
 
 
@@ -79,10 +85,14 @@ impl Message {
             PitchWheel { pos, prev_pos } => {
                 pitch_wheel::move_to_smoothly(prev_pos, pos);
                 None
-            }
+            },
             CC { channel, value } => {
                 let mut midi_connector = GLOBAL_MIDI_CONNECTOR.lock().unwrap();
                 midi_connector.borrow_mut().cc_message(channel, value);
+                None
+            },
+            ControlMessage { .. } => {
+                handle_control_msg(DawType::McuDefault, self);
                 None
             }
         }

@@ -26,7 +26,7 @@ impl MidiConnector {
     }
 
     /// 获取并返回当前port列表
-    pub fn port_list(&mut self) -> Result<Vec<String>> {
+    pub fn port_list() -> Result<Vec<String>> {
         let output = MidiConnector::open_output()?;
         let count = output.port_count();
         let mut port_name_list: Vec<String> = Vec::with_capacity(count);
@@ -80,11 +80,15 @@ impl MidiConnector {
             midi_control::control_change(Ch1, channel as u8, value as u8)
         ).expect("error to send cc message");
     }
+
 }
 
 lazy_static! {
     pub static ref GLOBAL_MIDI_CONNECTOR: Mutex<MidiConnector> = Mutex::new(
         MidiConnector::new("GLOBAL_MIDI_CONNECTOR#1".to_string())
+    );
+    pub static ref GLOBAL_CTL_CONNECTOR: Mutex<MidiConnector> = Mutex::new(
+        MidiConnector::new("GLOBAL_CTL_CONNECTOR#1".to_string())
     );
 }
 
