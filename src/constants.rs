@@ -6,6 +6,7 @@ pub const CHORD_OP: i8 = 4;
 pub const PITCHWHEEL_OP: i8 = 5;
 pub const CC_OP: i8 = 7;
 pub const CONTROL_OP: i8 = 8;
+pub const TRACK_OP: i8 = 9;
 
 
 pub const SERVER_NAME: &str = "VPadServer";

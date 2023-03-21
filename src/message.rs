@@ -7,6 +7,7 @@ use crate::midi_connect::{GLOBAL_MIDI_CONNECTOR};
 use crate::message::Message::*;
 use crate::pitch_wheel;
 use crate::server::VPadMessageContext;
+use crate::track_handler::handle_track_message;
 
 
 #[derive(Debug)]
@@ -55,6 +56,11 @@ pub enum Message {
         state: i8,
         auto_close: i8
     },
+    TrackMessage {
+        nth: i8,
+        state: i8,
+        value: i8
+    }
 }
 
 
@@ -93,6 +99,10 @@ impl Message {
             },
             ControlMessage { .. } => {
                 handle_control_msg(DawType::McuDefault, self);
+                None
+            },
+            TrackMessage { .. } => {
+                handle_track_message(self);
                 None
             }
         }

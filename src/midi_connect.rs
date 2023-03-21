@@ -2,7 +2,7 @@ use std::string::ToString;
 use std::sync::{Mutex};
 use lazy_static::lazy_static;
 use midi_control::Channel::Ch1;
-use midi_control::MidiMessageSend;
+use midi_control::{Channel, MidiMessageSend};
 use midir::{ConnectError, InitError, MidiOutput, MidiOutputConnection};
 use crate::{midi_connect::MidiConnectorError::PortNotFoundError};
 
@@ -59,25 +59,36 @@ impl MidiConnector {
     }
 
     pub fn midi_note_message(&mut self, note: i8, velocity: i8, state: i8) {
+        self.midi_note_message_with_channel(note, velocity, state, Channel::Ch1);
+    }
+    pub fn midi_note_message_with_channel(&mut self, note: i8, velocity: i8, state: i8, channel: Channel) {
         let message = if state == 0 {
-            midi_control::note_off(midi_control::Channel::Ch1, note as u8, velocity as u8)
+            midi_control::note_off(channel, note as u8, velocity as u8)
         } else {
-            midi_control::note_on(midi_control::Channel::Ch1, note as u8, velocity as u8)
+            midi_control::note_on(channel, note as u8, velocity as u8)
         };
         self.connection.as_mut().unwrap().send_message(message).expect("error when send message");
     }
 
+
     pub fn pitch_wheel_message(&mut self, pos: i8) {
+        self.pitch_wheel_message_with_channel(pos, Channel::Ch1);
+    }
+    pub fn pitch_wheel_message_with_channel(&mut self, pos: i8, ch: Channel) {
         let pos = pos as u16;
         let pos = pos * 128;
         self.connection.as_mut().unwrap().send_message(
-            midi_control::pitch_bend(midi_control::Channel::Ch1, pos)
+            midi_control::pitch_bend(ch, pos)
         ).expect("error to send pitchwheel message");
     }
 
+
     pub fn cc_message(&mut self, channel: i8, value: i8) {
+        self.cc_message_with_channel(channel, value, Channel::Ch1);
+    }
+    pub fn cc_message_with_channel(&mut self, channel: i8, value: i8, ch: Channel) {
         self.connection.as_mut().unwrap().send_message(
-            midi_control::control_change(Ch1, channel as u8, value as u8)
+            midi_control::control_change(ch, channel as u8, value as u8)
         ).expect("error to send cc message");
     }
 
