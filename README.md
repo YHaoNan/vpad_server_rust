@@ -9,12 +9,13 @@ VPad的Server的Rust实现，作为Rust学习的练手项目以及我的毕业�
 - ffi
 
 # TodoList
+- [ ] 修复有时会报Incompleted Message 2的问题
 - [ ] windows平台下使用ffi接入`virtualMidi.dll`，进行虚拟MIDI设备
 - [ ] 其它平台下使用`midir`进行MIDI设备虚拟
-- [ ] 通过MCU协议支持DAW控制
-- [ ] 边做边重新编写协议文档（之前的弄丢了）
 - [ ] 重新设计琶音器的音量包络，让其语义更加明确
-- [ ] 添加日志库
+- [x] 添加日志库
+- [x] 通过MCU协议支持DAW控制
+- [x] 边做边重新编写协议文档（之前的弄丢了）
 - [x] 修复BUG：音量包络不应该和`up_note_cnt`关联
 - [x] 支持CC Message
 - [x] 根据`content_bytes`读取整条消息，而不是依赖当前版本的消息定义

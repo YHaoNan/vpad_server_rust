@@ -53,7 +53,7 @@ impl codec::Decoder for MessageCodec {
             return Ok(None);
         }
         if src.len() < 2 {
-            return Err(DecodeError("Incompleted Message"));
+            return Err(DecodeError("Incompleted Message 1"));
         }
 
         let first_two = &src[0..2];
@@ -62,7 +62,7 @@ impl codec::Decoder for MessageCodec {
 
         // 如果消息不完整
         if remaind_bytes_cnt as usize > src.len() - 2 {
-            return Err(DecodeError("Incompleted Message"));
+            return Err(DecodeError("Incompleted Message 2"));
         }
         // 跳过前两个字节
         src.advance(2);
