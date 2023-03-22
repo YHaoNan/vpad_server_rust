@@ -59,7 +59,7 @@ impl ChordHandler {
     fn stop_chord_task(&self, identifier: String, message: Message) {
         if let Chord { note, chord_type, chord_level, transpose, ..} = message {
             if let Some(tx) = self.chord_tasks.lock().unwrap().remove(&identifier) {
-                tx.send(()).expect("error when send chord handler stop message");
+                let _  = tx.send(());
             }
             let mut note_offs = build_note_offsets(chord_type, chord_level);
             transpose_vec(&mut note_offs, transpose);

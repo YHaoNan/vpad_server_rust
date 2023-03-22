@@ -53,7 +53,9 @@ impl codec::Decoder for MessageCodec {
             return Ok(None);
         }
         if src.len() < 2 {
-            return Err(DecodeError("Incompleted Message 1"));
+            log::error!("Incompleted Message 1");
+            return Ok(None);
+            // return Err(DecodeError("Incompleted Message 1"));
         }
 
         let first_two = &src[0..2];
@@ -62,14 +64,16 @@ impl codec::Decoder for MessageCodec {
 
         // 如果消息不完整
         if remaind_bytes_cnt as usize > src.len() - 2 {
-            return Err(DecodeError("Incompleted Message 2"));
+            log::error!("Incompleted Message 2. Message Length => {}, src.len() => {}", remaind_bytes_cnt + 2, src.len());
+            return Ok(None);
+            // return Err(DecodeError("Incompleted Message 2"));
         }
         // 跳过前两个字节
         src.advance(2);
 
         // 分割当前消息和下一条消息
         let mut remaind_bytes = src.split_to(remaind_bytes_cnt as usize);
-        log::info!("this_message_len:{}, remaind:{}", remaind_bytes.len(), src.len());
+        log::debug!("this_message_len:{}, remaind:{}", remaind_bytes.len(), src.len());
 
         // 获取操作码
         let op = remaind_bytes.get_i8();

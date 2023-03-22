@@ -104,9 +104,9 @@ async fn read_from_client(mut reader: MessageFramedStream, msg_tx: mpsc::Sender<
                 log::info!("Read from client error: {:?}", e);
             }
             Some(Ok(msg)) => {
-                log::info!("Got an message => {:?}", msg);
+                log::debug!("Got an message => {:?}", msg);
                 if let Some(return_msg) = msg.handle_and_return(&ctx) {
-                    log::info!("Return msg => {:?}", return_msg);
+                    log::debug!("Return msg => {:?}", return_msg);
                     if msg_tx.send(return_msg).await.is_err() {
                         log::error!("Error to send return msg to sender channel");
                     }
