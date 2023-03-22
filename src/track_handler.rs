@@ -1,4 +1,3 @@
-use dioxus::html::s;
 use midi_control::Channel;
 use crate::message::Message;
 use crate::midi_connect::GLOBAL_CTL_CONNECTOR;

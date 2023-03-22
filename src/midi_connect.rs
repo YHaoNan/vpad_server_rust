@@ -1,7 +1,6 @@
 use std::string::ToString;
 use std::sync::{Mutex};
 use lazy_static::lazy_static;
-use midi_control::Channel::Ch1;
 use midi_control::{Channel, MidiMessageSend};
 use midir::{ConnectError, InitError, MidiOutput, MidiOutputConnection};
 use crate::{midi_connect::MidiConnectorError::PortNotFoundError};

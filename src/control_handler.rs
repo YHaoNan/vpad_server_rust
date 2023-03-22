@@ -1,6 +1,4 @@
 use std::collections::HashMap;
-use std::iter::Map;
-use dioxus::html::u;
 use lazy_static::lazy_static;
 use crate::message::Message::ControlMessage;
 use crate::message::Message;
