@@ -2,6 +2,7 @@ use std::io::stdin;
 use std::net::{IpAddr};
 use std::str::FromStr;
 use std::sync::MutexGuard;
+use network_interface::{NetworkInterface, NetworkInterfaceConfig};
 
 use crate::constants;
 use crate::midi_connect::{GLOBAL_CTL_CONNECTOR, GLOBAL_MIDI_CONNECTOR, MidiConnector};
@@ -17,6 +18,7 @@ ____   ______________             .___ __________                __
 
 pub async fn startup() {
 	print_slogan();
+	print_qrcode();
 	request_user_to_connect_midi_output_port();
 	start_server().await;
 }
@@ -68,4 +70,27 @@ fn request_user_to_connect_midi_output_port() {
 	println!("\n\nAll Settings done! Enjoy it~")
 }
 
+
+/// 遍历每个网络接口，获取所有合法ip地址
+/// 	1. 必须是ipv4
+/// 	2. 必须不能是loopback
+/// 	3. 如果一个接口上有多个ip，取第一个符合的ip
+fn get_all_vaild_ip_addresses() -> Vec<String> {
+	NetworkInterface::show().expect("cannot get network interfaces").iter().filter_map(|iface| {
+		let addrs = &iface.addr;
+		for addr in addrs {
+			let ip = addr.ip();
+			if ip.is_ipv4() && !ip.is_loopback() {
+				return Some(ip.to_string())
+			}
+		}
+		None
+	}).collect()
+}
+
+fn print_qrcode() {
+	let qrcontent = get_all_vaild_ip_addresses().join(";");
+	if qrcontent.is_empty() { panic!("it seems there's no any network interface on your computer. so ... panic!"); }
+	qr2term::print_qr(qrcontent).expect("cannot print qrcode");
+}
 
