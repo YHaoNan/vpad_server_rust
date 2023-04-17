@@ -3,7 +3,6 @@ use std::net::{IpAddr};
 use std::str::FromStr;
 use std::sync::MutexGuard;
 use network_interface::{NetworkInterface, NetworkInterfaceConfig};
-
 use crate::constants;
 use crate::midi_connect::{GLOBAL_CTL_CONNECTOR, GLOBAL_MIDI_CONNECTOR, MidiConnector};
 use crate::server;
@@ -18,7 +17,6 @@ ____   ______________             .___ __________                __
 
 pub async fn startup() {
 	print_slogan();
-	print_qrcode();
 	request_user_to_connect_midi_output_port();
 	start_server().await;
 }
@@ -67,7 +65,9 @@ fn request_user_to_connect_midi_output_port() {
 	println!("\n\nChoose control midi device: ");
 	select_a_port_and_connect(ctl_connector, &port_list);
 
-	println!("\n\nAll Settings done! Enjoy it~")
+	println!("\n\nAll Settings done! Enjoy it~");
+
+	print_qrcode();
 }
 
 
@@ -89,6 +89,7 @@ fn get_all_vaild_ip_addresses() -> Vec<String> {
 }
 
 fn print_qrcode() {
+	println!("There is your qrcode: ");
 	let qrcontent = get_all_vaild_ip_addresses().join(";");
 	if qrcontent.is_empty() { panic!("it seems there's no any network interface on your computer. so ... panic!"); }
 	qr2term::print_qr(qrcontent).expect("cannot print qrcode");
