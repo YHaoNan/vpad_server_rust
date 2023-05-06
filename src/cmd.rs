@@ -49,23 +49,31 @@ fn select_a_port_and_connect(mut connector: MutexGuard<MidiConnector>, port_list
 }
 
 fn request_user_to_connect_midi_output_port() {
-	let midi_connector = GLOBAL_MIDI_CONNECTOR.lock().unwrap();
-	let ctl_connector = GLOBAL_CTL_CONNECTOR.lock().unwrap();
+	let mut midi_connector = GLOBAL_MIDI_CONNECTOR.lock().unwrap();
+	let mut ctl_connector = GLOBAL_CTL_CONNECTOR.lock().unwrap();
 
-	// === print_output_ports_and_select_name
-	println!("Available midi output port: ");
-	let port_list = MidiConnector::port_list().expect("Cannot get midi port list");
-	for i in 0..port_list.len() {
-		println!("\t{}. {}", i + 1, port_list[i]);
+	println!("Trying to create virtual midi device...");
+
+	if midi_connector.create_virtual_and_connect(String::from("VPadInstrument")) &&
+		ctl_connector.create_virtual_and_connect(String::from("VPadControl")) {
+		println!("Successed!");
+	} else {
+		println!("Cannot create virtual midi device, please choose a midi output port to connnect...");
+		// === print_output_ports_and_select_name
+		println!("Available midi output port: ");
+		let port_list = MidiConnector::port_list().expect("Cannot get midi port list");
+		for i in 0..port_list.len() {
+			println!("\t{}. {}", i + 1, port_list[i]);
+		}
+
+		println!("\n\nChoose instrument midi device: ");
+		select_a_port_and_connect(midi_connector, &port_list);
+
+		println!("\n\nChoose control midi device: ");
+		select_a_port_and_connect(ctl_connector, &port_list);
+
+		println!("\n\nAll Settings done! Enjoy it~");
 	}
-
-	println!("\n\nChoose instrument midi device: ");
-	select_a_port_and_connect(midi_connector, &port_list);
-
-	println!("\n\nChoose control midi device: ");
-	select_a_port_and_connect(ctl_connector, &port_list);
-
-	println!("\n\nAll Settings done! Enjoy it~");
 
 	print_qrcode();
 }

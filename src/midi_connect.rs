@@ -4,6 +4,7 @@ use lazy_static::lazy_static;
 use midi_control::{Channel, MidiMessageSend};
 use midir::{ConnectError, InitError, MidiOutput, MidiOutputConnection};
 use crate::{midi_connect::MidiConnectorError::PortNotFoundError};
+use crate::{virtual_midi};
 
 pub type Result<T> = std::result::Result<T, MidiConnectorError>;
 
@@ -17,6 +18,13 @@ impl MidiConnector {
         MidiConnector {
             name,
             connection: None
+        }
+    }
+
+    pub fn with_connection(name: String, connection: MidiOutputConnection) -> MidiConnector {
+        MidiConnector {
+            name: name,
+            connection: Some(connection)
         }
     }
 
@@ -38,6 +46,16 @@ impl MidiConnector {
         Ok(port_name_list)
     }
 
+    pub fn create_virtual_and_connect(&mut self, port_name: String) -> bool {
+        if let Ok(midi_output) = MidiConnector::open_output() {
+            if let Some(conn) = virtual_midi::create_virtual_midi_port(midi_output, port_name) {
+                self.connection = Some(conn);
+                return true
+            }
+        }
+        false
+    }
+
     /// 连接port列表中的第i个port
     pub fn connect_port(&mut self, port_name: String) -> Result<()> {
         let output = MidiConnector::open_output()?;
@@ -52,7 +70,8 @@ impl MidiConnector {
 
         Err(PortNotFoundError)
     }
-    
+
+
     pub fn is_connected(&self) -> bool {
         self.connection.is_some()
     }

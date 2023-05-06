@@ -8,12 +8,14 @@ VPad的Server的Rust实现，作为Rust学习的练手项目以及我的毕业�
 2. `vpad_server_rust.exe`：主程序
 3. `VPadServer Manual.pdf`：服务器端使用说明
 
-软件的运行依赖一个可以创建虚拟MIDI转发设备的应用程序，这里推荐使用loopMIDI。可以进入[官网](https://www.tobias-erichsen.de/software/loopmidi.html)下载安装。
+在Windows下，软件的运行依赖一个可以创建虚拟MIDI转发设备的应用程序，这里推荐使用loopMIDI。可以进入[官网](https://www.tobias-erichsen.de/software/loopmidi.html)下载安装。
+
+> 在Linux下，软件会使用rtmidi创建两个虚拟MIDI设备，你需要使用`aconnect`将它们连接到DAW提供的虚拟MIDI端口上。好像ALSA和JACK是两种解决办法，但我没有精力去研究了，你可以RTFM。
+> 
+> 如果你使用Reaper，Reaper会自动创建一个虚拟MIDI，使用`aconnect -o`查看输出端口可以看到这个设备，使用`aconnect -i`查看输入端口可以看到VPad创建的虚拟设备，使用`aconnect 输入端口 输出端口`即可将两者连接。
 
 ## 编译
 如果你是MacOS或Linux，你也可以在Release页面手动下载源码包，使用`cargo run`运行或`cargo build`编译。
-
-我不确定代码在其它平台上是否运行正常，若遇到在其它平台编译出现问题，或某些功能出现问题，可以fork项目，创建自己的分支，或者提交PR。
 
 # TodoList
 - [ ] windows平台下使用ffi接入`virtualMidi.dll`，进行虚拟MIDI设备
