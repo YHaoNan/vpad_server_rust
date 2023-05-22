@@ -1,4 +1,5 @@
 use std::borrow::BorrowMut;
+use midi_control::Channel;
 use crate::arp_handler::GLOBAL_ARP_HANDLER;
 use crate::chord_handler::GLOBAL_CHORD_HANDLER;
 use crate::constants::*;
@@ -19,7 +20,8 @@ pub enum Message {
     Midi {
         note: i8,
         velocity: i8,
-        state: i8
+        state: i8,
+        channel: i8
     },
     Arp {
         note: i8,
@@ -31,7 +33,8 @@ pub enum Message {
         up_note_cnt: i8,
         velocity_automation: i8,
         dynamic_pct: i16,
-        bpm: i16
+        bpm: i16,
+        channel: i8
     },
     Chord {
         note: i8,
@@ -41,7 +44,8 @@ pub enum Message {
         chord_type: i8,
         chord_level: i8,
         transpose: i8,
-        arp_delay: i8
+        arp_delay: i8,
+        channel: i8
     },
     PitchWheel {
         pos: i8,
@@ -73,9 +77,9 @@ impl Message {
                     platform: SERVER_PLATFORM.into()
                 })
             },
-            Midi {note, velocity, state} => {
+            Midi {note, velocity, state, channel} => {
                 let mut midi_connector = GLOBAL_MIDI_CONNECTOR.lock().unwrap();
-                midi_connector.borrow_mut().midi_note_message(note, velocity, state);
+                midi_connector.borrow_mut().midi_note_message_with_channel_number(note, velocity, state, channel);
                 None
             },
             Arp { note, .. } => {

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Duration;
 use lazy_static::lazy_static;
+use midi_control::Channel;
 use crate::message::Message;
 use crate::message::Message::Chord;
 use crate::midi_connect::GLOBAL_MIDI_CONNECTOR;
@@ -27,7 +28,7 @@ impl ChordHandler {
     }
 
     fn start_chord_task(&self, identifier: String, message: Message) {
-        if let Chord { note, velocity , bpm, chord_type, chord_level, transpose, arp_delay, ..} = message {
+        if let Chord { note, velocity , bpm, chord_type, chord_level, transpose, arp_delay, channel, ..} = message {
 
             let mut note_offs = build_note_offsets(chord_type, chord_level);
             transpose_vec(&mut note_offs, transpose);
@@ -45,7 +46,7 @@ impl ChordHandler {
                 for i in pulse_generator {
                     if let Ok(()) = stop_receiver.try_recv() { break; }
                     let i = i as usize;
-                    send_midi_note_msg_once(note + note_offs[i], velocity, 1);
+                    send_midi_note_msg_once(note + note_offs[i], velocity, 1, channel);
                     if i == note_offs.len() - 1 {
                         break;
                     }
@@ -57,30 +58,30 @@ impl ChordHandler {
     }
 
     fn stop_chord_task(&self, identifier: String, message: Message) {
-        if let Chord { note, chord_type, chord_level, transpose, ..} = message {
+        if let Chord { note, chord_type, chord_level, transpose, channel, ..} = message {
             if let Some(tx) = self.chord_tasks.lock().unwrap().remove(&identifier) {
                 let _  = tx.send(());
             }
             let mut note_offs = build_note_offsets(chord_type, chord_level);
             transpose_vec(&mut note_offs, transpose);
-            send_midi_off(note, note_offs);
+            send_midi_off(note, note_offs, channel);
         }
     }
 }
 
-fn send_midi_note_msg_once(note: i8, velocity: i8, state: i8) {
+fn send_midi_note_msg_once(note: i8, velocity: i8, state: i8, channel: i8) {
     if note < 0 { return; }
     let mut conn = GLOBAL_MIDI_CONNECTOR.lock().unwrap();
-    conn.midi_note_message(note, velocity, state);
+    conn.midi_note_message_with_channel_number(note, velocity, state, channel);
 }
-fn send_midi_on(note: i8, note_offs: Vec<i8>, velocity: i8) {
+fn send_midi_on(note: i8, note_offs: Vec<i8>, velocity: i8, channel: i8) {
     for note_off in note_offs {
-        send_midi_note_msg_once(note + note_off, velocity, 1);
+        send_midi_note_msg_once(note + note_off, velocity, 1, channel);
     }
 }
-fn send_midi_off(note: i8, note_offs: Vec<i8>) {
+fn send_midi_off(note: i8, note_offs: Vec<i8>, channel: i8) {
     for note_off in note_offs {
-        send_midi_note_msg_once(note + note_off, 0, 0);
+        send_midi_note_msg_once(note + note_off, 0, 0, channel);
     }
 }
 

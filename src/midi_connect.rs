@@ -79,6 +79,11 @@ impl MidiConnector {
     pub fn midi_note_message(&mut self, note: i8, velocity: i8, state: i8) {
         self.midi_note_message_with_channel(note, velocity, state, Channel::Ch1);
     }
+
+    pub fn midi_note_message_with_channel_number(&mut self, note: i8, velocity: i8, state: i8, channel: i8) {
+        self.midi_note_message_with_channel(note, velocity, state, Channel::from((channel-1) as u8))
+    }
+
     pub fn midi_note_message_with_channel(&mut self, note: i8, velocity: i8, state: i8, channel: Channel) {
         let message = if state == 0 {
             midi_control::note_off(channel, note as u8, velocity as u8)

@@ -1,4 +1,5 @@
 use midir::{MidiOutput, MidiOutputConnection};
+#[cfg(unix)]
 use midir::os::unix::{VirtualOutput};
 
 #[cfg(unix)]

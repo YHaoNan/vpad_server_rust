@@ -89,7 +89,8 @@ impl codec::Decoder for MessageCodec {
                 Some(Midi {
                     note: remaind_bytes.get_i8(),
                     velocity: remaind_bytes.get_i8(),
-                    state: remaind_bytes.get_i8()
+                    state: remaind_bytes.get_i8(),
+                    channel: remaind_bytes.get_i8()
                 })
             }
             ARP_OP => {
@@ -103,7 +104,8 @@ impl codec::Decoder for MessageCodec {
                     up_note_cnt: remaind_bytes.get_i8(),
                     velocity_automation: remaind_bytes.get_i8(),
                     dynamic_pct: remaind_bytes.get_i16(),
-                    bpm: remaind_bytes.get_i16()
+                    bpm: remaind_bytes.get_i16(),
+                    channel: remaind_bytes.get_i8()
                 })
             }
             CHORD_OP => {
@@ -115,7 +117,8 @@ impl codec::Decoder for MessageCodec {
                     chord_level: remaind_bytes.get_i8(),
                     transpose: remaind_bytes.get_i8(),
                     arp_delay: remaind_bytes.get_i8(),
-                    bpm: remaind_bytes.get_i16()
+                    bpm: remaind_bytes.get_i16(),
+                    channel: remaind_bytes.get_i8()
                 })
             }
             PITCHWHEEL_OP => {
