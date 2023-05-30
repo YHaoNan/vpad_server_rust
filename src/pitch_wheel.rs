@@ -9,7 +9,7 @@ lazy_static! {
     static ref STOP_CHAN: (broadcast::Sender<()>, broadcast::Receiver<()>) = broadcast::channel(16);
 }
 
-pub fn move_to_smoothly(prev_pos: i8, pos: i8) {
+pub fn move_to_smoothly(prev_pos: i8, pos: i8, channel: i8) {
     let vec:Vec<i8> =
         if prev_pos > pos { (pos..=prev_pos).rev().collect() } // 如果前一个更大，由于Rust只能创建正序Range，所以反过来创建并rev
         else { (prev_pos..=pos).collect() };                    // 前一个更小
@@ -23,12 +23,12 @@ pub fn move_to_smoothly(prev_pos: i8, pos: i8) {
             if rx.try_recv().is_ok() {
                 break;
             }
-            move_to(value);
+            move_to(value, channel);
             tokio::time::sleep(DUR).await;
         }
     });
 }
 
-pub fn move_to(pos: i8) {
-    GLOBAL_MIDI_CONNECTOR.lock().unwrap().pitch_wheel_message(pos);
+pub fn move_to(pos: i8, channel: i8) {
+    GLOBAL_MIDI_CONNECTOR.lock().unwrap().pitch_wheel_message_with_channel_number(pos, channel);
 }

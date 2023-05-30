@@ -17,7 +17,6 @@ mod public;
 mod control_handler;
 mod midi_note_to_number;
 mod track_handler;
-mod virtual_midi;
 
 #[tokio::main]
 async fn main() {

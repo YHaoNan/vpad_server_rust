@@ -2,10 +2,26 @@ use std::io::stdin;
 use std::net::{IpAddr};
 use std::str::FromStr;
 use std::sync::MutexGuard;
+use std::env;
 use network_interface::{NetworkInterface, NetworkInterfaceConfig};
 use crate::constants;
 use crate::midi_connect::{GLOBAL_CTL_CONNECTOR, GLOBAL_MIDI_CONNECTOR, MidiConnector};
 use crate::server;
+use clap::Parser;
+
+#[derive(Parser)]
+#[command(name = "VPadCore")]
+#[command(author = "Yudoge. <yohahaonan@gmail.com>")]
+#[command(version = "1.0")]
+#[command(author, version)]
+struct CoreCli {
+	#[arg(short)]
+	instrument_midi_port: String,
+	#[arg(short)]
+	control_midi_port: String,
+	#[arg(short)]
+	log_level: Option<String>
+}
 
 const SLOGAN: &str = r"
 ____   ______________             .___ __________                __   
@@ -16,9 +32,23 @@ ____   ______________             .___ __________                __
                            \/      \/          \/           \/        ";
 
 pub async fn startup() {
-	print_slogan();
-	request_user_to_connect_midi_output_port();
-	start_server().await;
+	if env::args().len() > 1 {
+		// core mode
+		println!("core mode!");
+		let cli = CoreCli::parse();
+		let midi_connector = GLOBAL_MIDI_CONNECTOR.lock().unwrap();
+		let ctl_connector = GLOBAL_CTL_CONNECTOR.lock().unwrap();
+		println!("Trying to connect to {}", &cli.instrument_midi_port);
+		connect_to_a_midi_port(midi_connector, cli.instrument_midi_port);
+		println!("Trying to connect to {}", &cli.control_midi_port);
+		connect_to_a_midi_port(ctl_connector, cli.control_midi_port);
+		start_server().await;
+	} else {
+		// standalone mode
+		print_slogan();
+		request_user_to_connect_midi_output_port();
+		start_server().await;
+	}
 }
 
 
@@ -35,45 +65,41 @@ fn print_slogan() {
 	println!("{} -- {}\n\n", constants::SERVER_PLATFORM, constants::SERVER_VERSION);
 }
 
-fn select_a_port_and_connect(mut connector: MutexGuard<MidiConnector>, port_list: &Vec<String>) {
-	let mut index = String::new();
-	stdin().read_line(&mut index).expect("Cannot read from stdin");
-	let index = index.trim().parse::<usize>().expect("Your input cannot convert to a index");
-	let selected_port_name = port_list.get(index - 1).expect(&format!("Cannot get index {}. Please it's not out of bounds", index)).clone();
-	println!("Trying to connect to [{}]", selected_port_name);
-	connector.connect_port(selected_port_name).expect("Faild to establish the connect!");
+fn connect_to_a_midi_port(mut connector: MutexGuard<MidiConnector>, port: String) {
+	connector.connect_port(port).expect("faild to connect");
 	println!("Connection established!");
 	if !connector.is_connected() {
 		panic!("It seems you already connected to midi output, but the state of MidiConnector is showing that you are now connect successfully! Program exit!");
 	}
 }
 
+fn select_a_port_and_connect(connector: MutexGuard<MidiConnector>, port_list: &Vec<String>) {
+	let mut index = String::new();
+	stdin().read_line(&mut index).expect("Cannot read from stdin");
+	let index = index.trim().parse::<usize>().expect("Your input cannot convert to a index");
+	let selected_port_name = port_list.get(index - 1).expect(&format!("Cannot get index {}. Please it's not out of bounds", index)).clone();
+	println!("Trying to connect to [{}]", selected_port_name);
+	connect_to_a_midi_port(connector, selected_port_name);
+}
+
 fn request_user_to_connect_midi_output_port() {
-	let mut midi_connector = GLOBAL_MIDI_CONNECTOR.lock().unwrap();
-	let mut ctl_connector = GLOBAL_CTL_CONNECTOR.lock().unwrap();
+	let midi_connector = GLOBAL_MIDI_CONNECTOR.lock().unwrap();
+	let ctl_connector = GLOBAL_CTL_CONNECTOR.lock().unwrap();
 
-	println!("Trying to create virtual midi device...");
-
-	if midi_connector.create_virtual_and_connect(String::from("VPadInstrument")) &&
-		ctl_connector.create_virtual_and_connect(String::from("VPadControl")) {
-		println!("Successed!");
-	} else {
-		println!("Cannot create virtual midi device, please choose a midi output port to connnect...");
-		// === print_output_ports_and_select_name
-		println!("Available midi output port: ");
-		let port_list = MidiConnector::port_list().expect("Cannot get midi port list");
-		for i in 0..port_list.len() {
-			println!("\t{}. {}", i + 1, port_list[i]);
-		}
-
-		println!("\n\nChoose instrument midi device: ");
-		select_a_port_and_connect(midi_connector, &port_list);
-
-		println!("\n\nChoose control midi device: ");
-		select_a_port_and_connect(ctl_connector, &port_list);
-
-		println!("\n\nAll Settings done! Enjoy it~");
+	// === print_output_ports_and_select_name
+	println!("Available midi output port: ");
+	let port_list = MidiConnector::port_list().expect("Cannot get midi port list");
+	for i in 0..port_list.len() {
+		println!("\t{}. {}", i + 1, port_list[i]);
 	}
+
+	println!("\n\nChoose instrument midi device: ");
+	select_a_port_and_connect(midi_connector, &port_list);
+
+	println!("\n\nChoose control midi device: ");
+	select_a_port_and_connect(ctl_connector, &port_list);
+
+	println!("\n\nAll Settings done! Enjoy it~");
 
 	print_qrcode();
 }

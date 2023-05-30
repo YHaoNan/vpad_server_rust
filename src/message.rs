@@ -1,5 +1,4 @@
 use std::borrow::BorrowMut;
-use midi_control::Channel;
 use crate::arp_handler::GLOBAL_ARP_HANDLER;
 use crate::chord_handler::GLOBAL_CHORD_HANDLER;
 use crate::constants::*;
@@ -49,11 +48,15 @@ pub enum Message {
     },
     PitchWheel {
         pos: i8,
-        prev_pos: i8
+        prev_pos: i8,
+        channel: i8
     },
     CC {
+        // 特别注意，channel实际上是CC通道，比如该消息代表控制CC64，那么channel就是64
+        // channel2实际上是该消息所在的MIDI通道
         channel: i8,
-        value: i8
+        value: i8,
+        channel2: i8
     },
     ControlMessage {
         operation: i8,
@@ -92,13 +95,13 @@ impl Message {
                 GLOBAL_CHORD_HANDLER.handle(identifier, self);
                 None
             },
-            PitchWheel { pos, prev_pos } => {
-                pitch_wheel::move_to_smoothly(prev_pos, pos);
+            PitchWheel { pos, prev_pos, channel} => {
+                pitch_wheel::move_to_smoothly(prev_pos, pos, channel);
                 None
             },
-            CC { channel, value } => {
+            CC { channel, value, channel2 } => {
                 let mut midi_connector = GLOBAL_MIDI_CONNECTOR.lock().unwrap();
-                midi_connector.borrow_mut().cc_message(channel, value);
+                midi_connector.borrow_mut().cc_message_with_channel_number(channel, value, channel2);
                 None
             },
             ControlMessage { .. } => {

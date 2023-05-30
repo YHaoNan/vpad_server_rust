@@ -124,13 +124,15 @@ impl codec::Decoder for MessageCodec {
             PITCHWHEEL_OP => {
                 Some(PitchWheel {
                     pos: remaind_bytes.get_i8(),
-                    prev_pos: remaind_bytes.get_i8()
+                    prev_pos: remaind_bytes.get_i8(),
+                    channel: remaind_bytes.get_i8()
                 })
             }
             CC_OP => {
                 Some(CC {
                     channel: remaind_bytes.get_i8(),
-                    value: remaind_bytes.get_i8()
+                    value: remaind_bytes.get_i8(),
+                    channel2: remaind_bytes.get_i8()
                 })
             }
             CONTROL_OP => {

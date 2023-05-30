@@ -39,6 +39,7 @@ impl VPadServer {
 
         let listener = socket.listen(1024)?;
         loop {
+            // 在两个异步任务上轮询，第一个完成的任务的代码块将被执行，另一个代码块将被放弃
             tokio::select! {
                 Ok((socket, addr)) = listener.accept() => {
                     tokio::spawn(process_socket(socket, addr));

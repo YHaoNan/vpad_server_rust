@@ -4,7 +4,6 @@ use lazy_static::lazy_static;
 use midi_control::{Channel, MidiMessageSend};
 use midir::{ConnectError, InitError, MidiOutput, MidiOutputConnection};
 use crate::{midi_connect::MidiConnectorError::PortNotFoundError};
-use crate::{virtual_midi};
 
 pub type Result<T> = std::result::Result<T, MidiConnectorError>;
 
@@ -44,16 +43,6 @@ impl MidiConnector {
         }
 
         Ok(port_name_list)
-    }
-
-    pub fn create_virtual_and_connect(&mut self, port_name: String) -> bool {
-        if let Ok(midi_output) = MidiConnector::open_output() {
-            if let Some(conn) = virtual_midi::create_virtual_midi_port(midi_output, port_name) {
-                self.connection = Some(conn);
-                return true
-            }
-        }
-        false
     }
 
     /// 连接port列表中的第i个port
@@ -97,6 +86,9 @@ impl MidiConnector {
     pub fn pitch_wheel_message(&mut self, pos: i8) {
         self.pitch_wheel_message_with_channel(pos, Channel::Ch1);
     }
+    pub fn pitch_wheel_message_with_channel_number(&mut self, pos: i8, channel: i8) {
+        self.pitch_wheel_message_with_channel(pos, Channel::from((channel-1) as u8))
+    }
     pub fn pitch_wheel_message_with_channel(&mut self, pos: i8, ch: Channel) {
         let pos = pos as u16;
         let pos = pos * 128;
@@ -108,6 +100,9 @@ impl MidiConnector {
 
     pub fn cc_message(&mut self, channel: i8, value: i8) {
         self.cc_message_with_channel(channel, value, Channel::Ch1);
+    }
+    pub fn cc_message_with_channel_number(&mut self, channel: i8, value: i8, channel2: i8) {
+        self.cc_message_with_channel(channel, value, Channel::from((channel2-1) as u8))
     }
     pub fn cc_message_with_channel(&mut self, channel: i8, value: i8, ch: Channel) {
         self.connection.as_mut().unwrap().send_message(

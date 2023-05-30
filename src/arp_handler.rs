@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Duration;
 use lazy_static::lazy_static;
-use midi_control::Channel;
 use rand::Rng;
 use crate::circle_container::CircleContainer;
 use crate::message::Message;
@@ -29,10 +28,10 @@ impl ArpHandler {
             else { self.stop_arp_task(identifier) }
         }
     }
-
     fn start_arp_task(&self, identifier: String, message: Message) {
         let channel = if let Arp {channel,..} = message { channel } else {1};
-        if let Some((mut note_generator, mut velocity_generator, pulse_generator)) = build_requirements(message, self) {
+        if let Some((mut note_generator, mut velocity_generator, pulse_generator))
+            = build_requirements(message, self) {
             let (stop_sender, mut stop_receiver) = tokio::sync::oneshot::channel();
             tokio::task::spawn_blocking(move || {
                 let mut last_note: Option<i8> = None;
@@ -47,7 +46,6 @@ impl ArpHandler {
             self.arp_tasks.lock().unwrap().insert(identifier, stop_sender);
         }
     }
-
     fn stop_arp_task(&self, identifier: String) {
         if let Some(tx) = self.arp_tasks.lock().unwrap().remove(&identifier) {
             tx.send(()).expect("error when stop arp task");

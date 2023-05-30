@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Duration;
 use lazy_static::lazy_static;
-use midi_control::Channel;
 use crate::message::Message;
 use crate::message::Message::Chord;
 use crate::midi_connect::GLOBAL_MIDI_CONNECTOR;
